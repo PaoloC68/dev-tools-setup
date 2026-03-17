@@ -2,35 +2,51 @@
 
 ## What is Serena?
 
-**Serena** (github.com/oraios/serena) is an open-source coding agent toolkit that provides IDE-like capabilities to any LLM through the Model Context Protocol (MCP). It leverages the Language Server Protocol (LSP) to understand code at the **symbol level** — not just text.
+**Serena** (github.com/oraios/serena) is an open-source coding agent toolkit that provides IDE-like capabilities to any LLM through the Model Context Protocol (MCP). It uses the Language Server Protocol (LSP) to understand code at the **symbol level**, not just text.
 
 ### Key Features
-- **Symbol-Level Understanding** — Knows where every function, class, and variable is defined
-- **30+ Languages** — Python, TypeScript, JavaScript, Go, Rust, C/C++, Java, and more
-- **100% Offline** — Works with local LLMs, no cloud dependency
-- **IDE Integration** — Claude Desktop, VSCode, Cursor, IntelliJ, Cline
-- **Token Efficient** — ~70% savings vs text-based RAG
+
+- **Symbol-Level Understanding**: Knows where every function, class, and variable is defined
+- **30+ Languages**: Python, TypeScript, JavaScript, Go, Rust, C/C++, Java, and more
+- **100% Offline**: Works with local LLMs, no cloud dependency
+- **IDE Integration**: Claude Desktop, VSCode, Cursor, OpenCode, IntelliJ, Cline
+- **Token Efficient**: ~70% savings vs text-based RAG
 
 ## Installation
 
-### Quick Install (NPM)
+### Recommended: uvx (via uv)
+
+```bash
+uvx --from git+https://github.com/oraios/serena serena start-mcp-server --context ide-assistant --project "$(pwd)"
+```
+
+This pulls directly from the Serena repository and runs without a global install. Best option for reproducible, isolated environments.
+
+### Alternative: pip
+
+```bash
+# Base install
+pip install serena
+
+# With MCP support
+pip install "serena[mcp]"
+
+# All languages (includes all LSP servers)
+pip install "serena[all]"
+```
+
+### NPX
+
 ```bash
 npx -y @oraios/serena --version
 ```
 
-### Full Installation
-```bash
-# Install dependencies
-pip install serena
-
-# Or with MCP support
-pip install "serena[mcp]"
-
-# For all languages (includes all LSP servers)
-pip install "serena[all]"
-```
+> **Air-Gap Warning**: `npx -y` always downloads from the npm registry.
+> For air-gapped environments, pre-install globally: `npm install -g @oraios/serena`
+> or use pip/uvx with pre-downloaded packages.
 
 ### Docker (Experimental)
+
 ```bash
 docker run -it -v $(pwd):/workspace oraios/serena
 ```
@@ -38,20 +54,27 @@ docker run -it -v $(pwd):/workspace oraios/serena
 ## Configuration
 
 ### Claude Desktop
+
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "serena": {
-      "command": "npx",
-      "args": ["-y", "@oraios/serena"]
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/oraios/serena",
+        "serena", "start-mcp-server",
+        "--context", "ide-assistant",
+        "--project", "."
+      ]
     }
   }
 }
 ```
 
 ### OpenCode
+
 Add to `~/.opencode.json`:
 
 ```json
@@ -59,7 +82,12 @@ Add to `~/.opencode.json`:
   "mcp": {
     "serena": {
       "type": "local",
-      "command": ["npx", "-y", "@oraios/serena"],
+      "command": [
+        "uvx", "--from", "git+https://github.com/oraios/serena",
+        "serena", "start-mcp-server",
+        "--context", "ide-assistant",
+        "--project", "."
+      ],
       "enabled": true
     }
   }
@@ -67,11 +95,17 @@ Add to `~/.opencode.json`:
 ```
 
 ### Custom Project Path
+
 ```json
 {
   "mcp": {
     "serena": {
-      "command": ["npx", "-y", "@oraios/serena", "--project", "/path/to/your/project"],
+      "command": [
+        "uvx", "--from", "git+https://github.com/oraios/serena",
+        "serena", "start-mcp-server",
+        "--context", "ide-assistant",
+        "--project", "/path/to/your/project"
+      ],
       "enabled": true
     }
   }
@@ -80,63 +114,70 @@ Add to `~/.opencode.json`:
 
 ## Project Activation
 
-### First-Time Setup
-Once connected to an LLM, activate your project:
+### Onboarding Workflow
 
-```
-> Activate the project at /path/to/my/project
-```
-
-Serena will:
-1. Analyze project structure
-2. Index all symbols (functions, classes, variables)
-3. Build dependency graph
-4. Create `.serena/project.yml`
-5. Store initial memories in `.serena/memories/`
+1. Install and start the Serena MCP server (see Installation above)
+2. Connect a client (Claude Desktop, OpenCode, Cursor)
+3. Prompt: `Activate the project at /path/to/project`
+4. Serena analyzes structure, indexes symbols, builds dependency graph
+5. Creates `.serena/project.yml` and `.serena/memories/`
+6. Verify: dashboard at `http://localhost:24282/dashboard/`
 
 ### Configuration (.serena/project.yml)
+
 ```yaml
 # Core settings
-read_only: false           # Enable/disable file modifications
-enable_gui_logging: true   # Enable GUI-based logging
-onboarding_enabled: true   # Enable automated project onboarding
+read_only: false
+enable_gui_logging: true
+onboarding_enabled: true
 
 # Language support
 languages:
   - python
-  - typescript
-  - rust
+  - cpp        # uses clangd by default
+  # - cpp_ccls  # alternative: use ccls instead
 
-# LSP settings
-lsp:
-  server: clangd          # or ccls for C/C++
-  compile_commands: ./compile_commands.json
+# Exclusions (recommended for large codebases)
+exclusions:
+  - "**/node_modules/**"
+  - "**/*build*"
+  - "**/deps/**"
+  - ".git"
 ```
 
 ## Verified Tools
 
 ### Navigation Tools
+
 | Tool | Description |
 |------|-------------|
-| `find_symbol` | Locate symbols by exact name |
+| `find_symbol` | Locate symbols by exact name or partial match |
 | `get_symbols_overview` | Get all symbols in a file |
-| `find_referencing_symbols` | Find all references to a symbol |
-| `find_implementations` | Find interface/class implementations |
-| `find_definitions` | Go to symbol definition |
+| `find_referencing_symbols` | Find all symbols that REFERENCE a given symbol (callers) |
+| `find_referenced_symbols` | Find all symbols REFERENCED BY a given symbol (callees) |
 
 ### Editing Tools
+
 | Tool | Description |
 |------|-------------|
-| `replace_symbol_body` | Replace entire function/method body |
+| `replace_symbol_body` | Replace entire function/method body (preserves signature) |
 | `insert_before_symbol` | Insert code before a symbol |
 | `insert_after_symbol` | Insert code after a symbol |
 | `delete_lines` | Delete specific lines |
 | `rename_symbol` | Rename and update all references |
 
+### Execution Tools
+
+| Tool | Description |
+|------|-------------|
+| `execute_shell_command` | Run shell commands (test execution, build, VCS) |
+
 ### Meta Tools
+
 | Tool | Description |
 |------|-------------|
 | `write_memory` | Persist insights to `.serena/memories/` |
+| `read_memory` | Retrieve previously stored memories |
 | `onboarding` | Automated project familiarization |
 | `think_about_task_adherence` | Check task alignment |
 
@@ -150,15 +191,15 @@ lsp:
 You: Rename the function `authenticate_user` to `validate_credentials` and update all references
 
 Serena:
-✓ Found 47 references across 12 files
+  Found 47 references across 12 files
   - src/auth/routes.py:42
   - src/auth/service.py:15
   - tests/auth/test_service.py:8
   - ...
 
 Updating references...
-✓ Updated 47 references in 12 files
-✓ Renamed symbol in 3 files
+  Updated 47 references in 12 files
+  Renamed symbol in 3 files
 
 Note: Also updated docstrings and comments mentioning "authenticate_user"
 ```
@@ -249,15 +290,15 @@ def process_payment(amount: Decimal, user_id: int) -> PaymentResult:
     ...
 ```
 
-### Use Case 5: Memory & Context
+### Use Case 5: Memory and Context
 
 **Scenario**: Remember important architectural decisions
 
 ```
-You: Remember this: We use JWT tokens with 24-hour expiry and refresh tokens for session management.
+You: Remember this: JWT tokens use 24-hour expiry and refresh tokens for session management.
 
 Serena:
-✓ Saved to .serena/memories/architecture.md
+  Saved to .serena/memories/architecture.md
 
 Content:
 # Architecture Decision
@@ -270,7 +311,7 @@ Content:
 Last updated: 2024-01-15
 ```
 
-You: What did we decide about token expiry?
+You: What did the team decide about token expiry?
 
 Serena:
 From memory (`.serena/memories/architecture.md`):
@@ -281,20 +322,23 @@ From memory (`.serena/memories/architecture.md`):
 ## Language Support
 
 ### Direct Support (Best Experience)
+
 | Language | LSP Server | Notes |
 |----------|------------|-------|
-| Python | pylsp / pyright | ✅ Best |
-| TypeScript/JavaScript | typescript-language-server | ✅ Best |
-| Go | gopls | ✅ Best |
-| Rust | rust-analyzer | ✅ Best |
-| C/C++ | clangd / ccls | ✅ Best |
-| Java | eclipse.jdtls | ✅ Good |
-| PHP | php-language-server | ✅ Good |
+| Python | pylsp / pyright | Best |
+| TypeScript/JavaScript | typescript-language-server | Best |
+| Go | gopls | Best |
+| Rust | rust-analyzer | Best |
+| C/C++ | clangd / ccls | Best |
+| Java | eclipse.jdtls | Good |
+| PHP | php-language-server | Good |
 
 ### Indirect Support (via multilspy)
-- Ruby, C#, Kotlin, Dart, Scala, Swift, and more
+
+Ruby, C#, Kotlin, Dart, Scala, Swift, and more.
 
 ### C/C++ Requirements
+
 For C/C++ projects, generate `compile_commands.json`:
 
 ```bash
@@ -305,9 +349,33 @@ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 bear -- make
 ```
 
+## Security Considerations
+
+Serena provides powerful system access. The `ide-assistant` and `claude-code` contexts already exclude the most dangerous tool (`execute_shell_command`) by default.
+
+**Recommended hardening** (sufficient for air-gapped + local LLM environments):
+
+```yaml
+# .serena/project.yml
+enable_gui_logging: false           # Disables dashboard (no 0.0.0.0 binding)
+
+excluded_tools:
+  - execute_shell_command           # Explicitly remove shell access
+```
+
+This eliminates the two critical risks: arbitrary shell execution and unauthenticated network dashboard. File access remains, but with an air-gapped network and local LLM, there is no exfiltration path.
+
+**Container isolation is optional** and only warranted when:
+- Using a remote LLM provider (cloud API — file contents travel to cloud)
+- Enabling `execute_shell_command` (for running tests/builds through Serena)
+- Compliance requires defense-in-depth regardless of threat model
+
+See the [Security Assessment](../research/security-assessment.md) for detailed analysis and container setup instructions when needed.
+
 ## Troubleshooting
 
 ### "Language server not found"
+
 ```bash
 # Install language servers
 pip install python-lsp-server  # Python
@@ -316,22 +384,34 @@ cargo install rust-analyzer  # Rust
 ```
 
 ### "Project not activated"
+
 ```
 Activate the project at /absolute/path/to/your/project
 ```
 
 ### "Symbols not found"
+
 - Ensure language server is running
 - Check `compile_commands.json` exists (C/C++)
 - Run onboarding again: `onboarding`
 
 ### Slow startup (Java)
+
 - Java LSP can be slow on macOS
 - Consider using pyright for Python-only projects
+
+## Best Practices
+
+- **Restart the language server** after adding new files. Newly created files aren't auto-indexed.
+- **Choose the right context mode**: use `agent` for autonomous workflows, `ide-assistant` for interactive sessions.
+- **Large C++ codebases** (>1M LOC): consider ccls over clangd for faster indexing.
+- **Pre-index nightly** for large repos to avoid cold-start delays.
+- **Version control `.serena/project.yml`** for team consistency. Keep `.serena/memories/` in `.gitignore`.
 
 ## Integration with Other Tools
 
 ### Agno Framework
+
 ```python
 from agno import Agent
 from serena import SerenaTools
@@ -340,6 +420,7 @@ agent = Agent(tools=SerenaTools())
 ```
 
 ### Custom Framework
+
 ```python
 from serena import Serena
 

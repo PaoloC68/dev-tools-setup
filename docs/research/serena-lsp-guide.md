@@ -4,7 +4,7 @@
 
 **Serena** is an LSP-based coding agent toolkit that provides semantic code retrieval and editing capabilities at the symbol level. It is a core component of the air-gapped codebase intelligence architecture, working alongside **Srclight** (vector database), **Memora** (cross-session memory), and **OpenCode** (IDE interface).
 
-> **Project Context:** This document is part of the Oh-My-OpenCode-Slim project, which implements a 100% offline, air-gapped RAG stack for C/C++ codebase intelligence.
+> **Project Context:** This document is part of the air-gapped AI coding architecture, which implements a 100% offline RAG stack for C/C++ codebase intelligence.
 
 ---
 
@@ -102,12 +102,22 @@ The file must include:
 ### 4.2 Installation
 
 ```bash
-# Via pip
+# Recommended: via uv (fast, dependency-isolated)
+uvx --from git+https://github.com/oraios/serena serena start-mcp-server --context ide-assistant --project "$(pwd)"
+
+# Alternative: via pip
 pip install serena
 
-# Via uv (recommended)
+# Alternative: via uv pip
 uv pip install serena
+
+# For air-gapped: pre-install, then use locally
+pip install serena  # on connected machine
+# Transfer wheel files to air-gapped machine
 ```
+
+> **Air-Gap Warning**: `npx -y @oraios/serena` always downloads from the npm registry.
+> For air-gapped environments, pre-install via pip or npm: `npm install -g @oraios/serena`
 
 ### 4.3 Project Configuration
 
@@ -128,11 +138,46 @@ compile_commands_dir: "./custom_compile_commands"
 
 ---
 
-## 5. Air-Gapped Deployment
+## 5. Security Considerations
+
+Serena provides powerful system access that requires careful configuration in air-gapped environments.
+
+### 5.1 Known Vulnerabilities
+
+A security audit (see [Discussion #380](https://github.com/oraios/serena/discussions/380)) identified:
+
+| Finding | Severity | Description |
+|---------|----------|-------------|
+| Shell command execution | Critical | `ExecuteShellCommandTool` uses `subprocess.Popen(shell=True)` with no sandboxing |
+| Network binding | High | Dashboard and MCP server bind to `0.0.0.0` by default (unauthenticated) |
+| File system access | High | Path traversal possible via file_tools.py |
+
+### 5.2 Hardening for Air-Gapped Deployment
+
+```yaml
+# .serena/project.yml - hardened configuration
+read_only: true              # Disable file modifications unless needed
+enable_gui_logging: false    # Disable dashboard (prevents 0.0.0.0 binding)
+```
+
+With this configuration, the `ide-assistant` context already excludes `execute_shell_command` by default, and the dashboard is fully disabled. In an air-gapped environment with a local LLM, this eliminates the critical attack vectors without requiring container isolation.
+
+Additional measures:
+
+- **Bind to localhost only**: If dashboard is needed, configure to `127.0.0.1`
+- **Process privileges**: Run as non-root user with minimal permissions
+- **Monitor connections**: Verify no unexpected outbound network activity
+- **Container isolation (optional)**: Only warranted when `execute_shell_command` is enabled (for running tests/builds), when using a remote LLM provider, or when compliance mandates defense-in-depth. Container deployment adds complexity (volume mounts for project files, LSP binaries, and system headers).
+
+See the full [Security Assessment](../research/security-assessment.md) for comprehensive analysis.
+
+---
+
+## 6. Air-Gapped Deployment
 
 Serena is designed for **100% offline operation**. Code never leaves the local machine.
 
-### 5.1 MCP Integration
+### 6.1 MCP Integration
 
 Serena integrates with the **Model Context Protocol (MCP)** for local tool-model communication:
 
@@ -149,9 +194,9 @@ Serena integrates with the **Model Context Protocol (MCP)** for local tool-model
 └──────────────┘
 ```
 
-### 5.2 OpenCode Integration
+### 6.2 OpenCode Integration
 
-For the Oh-My-OpenCode-Slim project, Serena integrates with **OpenCode** (the fork of the original archived tool):
+In this architecture, Serena integrates with **OpenCode** (the base AI coding agent):
 
 ```bash
 # Configure OpenCode to use Serena MCP server
@@ -163,18 +208,20 @@ mcpServers:
     args: ["--mcp"]
 ```
 
-### 5.3 Prerequisites for Air-Gapped Use
+### 6.3 Prerequisites for Air-Gapped Use
 
 Before going air-gapped, ensure:
 
-1. **Language servers downloaded:** Clangd binaries for your platform
-2. **Offline models:** Pre-download embedding models (e.g., `all-MiniLM-L6-v2`, `CodeT5+`, or Ollama-compatible)
-3. **All pip/npm packages:** Install locally before disconnecting
-4. **No cloud dependencies:** Verify no external API calls in configuration
+1. **Language servers downloaded**: Clangd binaries for your platform
+2. **Offline models**: Pre-download Ollama models (`ollama pull qwen3-embedding`)
+3. **All pip/npm packages**: Install locally before disconnecting
+4. **No cloud dependencies**: Verify no external API calls in configuration
+5. **Environment variables**: Set `HF_HUB_OFFLINE=1` for any Python processes using Hugging Face
+6. **NPX avoided**: Use pip-installed or npm-installed packages instead of `npx -y`
 
 ---
 
-## 6. Best Practices
+## 7. Best Practices
 
 ### ✅ Do
 
@@ -197,7 +244,7 @@ Before going air-gapped, ensure:
 
 ---
 
-## 7. Known Limitations
+## 8. Known Limitations
 
 | Limitation | Description | Workaround |
 |------------|-------------|------------|
@@ -207,7 +254,7 @@ Before going air-gapped, ensure:
 
 ---
 
-## 8. Token Efficiency
+## 9. Token Efficiency
 
 Serena provides **~70% token savings** compared to text-based RAG approaches:
 
@@ -223,26 +270,27 @@ This efficiency is critical for:
 
 ---
 
-## 9. Integration with Srclight
+## 10. Integration with Srclight
 
-Serena and **Srclight** (offline vector database) complement each other:
+Serena and **Srclight** (offline code indexer with hybrid search) complement each other:
 
 | Query Type | Tool | Example |
 |------------|------|---------|
 | Structural | Serena | "Find all definitions of `process_data`" |
-| Semantic | Srclight | "Find code that handles JSON parsing" |
-| Natural Language | Srclight | "Where is the authentication logic?" |
+| Keyword | Srclight (FTS5) | "Find functions containing 'auth'" |
+| Semantic | Srclight (embeddings) | "Find code that handles JSON parsing" |
+| Hybrid | Srclight (FTS5 + semantic) | "Where is the authentication logic?" |
 | Historical | Memora | "Why was this function modified?" |
 
 **Combined workflow:**
 1. Use Serena for precise symbol navigation
-2. Use Srclight for semantic search across the codebase
+2. Use Srclight for hybrid (keyword + semantic) search across the codebase
 3. Use Memora for cross-session context
 4. OpenCode orchestrates all three
 
 ---
 
-## 10. Quick Reference
+## 11. Quick Reference
 
 ```bash
 # Generate compile_commands.json
@@ -266,9 +314,10 @@ serena doctor
 ## Related Documents
 
 - [Architecture Overview](../architecture/overview.md)
-- [Srclight Setup Guide](./srclight-setup.md)
-- [Memora Configuration](./memora-config.md)
-- [OpenCode Integration](./opencode-setup.md)
+- [Srclight Setup Guide](../guides/srclight-setup.md)
+- [Memora Configuration](../guides/memora-config.md)
+- [OpenCode Integration](../guides/opencode-setup.md)
+- [Security Assessment](./security-assessment.md)
 
 ---
 
@@ -277,4 +326,5 @@ serena doctor
 - [Serena GitHub](https://github.com/oraios/serena)
 - [Official Documentation](https://oraios.github.io/serena)
 - [C/C++ Setup Guide](https://oraios.github.io/serena/03-special-guides/cpp_setup.html)
+- [Security Audit Discussion](https://github.com/oraios/serena/discussions/380)
 - [MCP Specification](https://modelcontextprotocol.io)

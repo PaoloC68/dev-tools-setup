@@ -154,7 +154,7 @@ opencode
 
 ## Security
 
-Air-gapped by design. Key concerns and mitigations:
+Air-gapped by design. The CRITICAL and HIGH labels below refer to known risks in default configurations that this architecture explicitly mitigates — they are documented precisely because they are handled.
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|

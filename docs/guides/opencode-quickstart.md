@@ -61,12 +61,17 @@ export OLLAMA_HOST="http://localhost:11434"
   "mcp": {
     "serena": {
       "type": "local",
-      "command": ["npx", "-y", "@oraios/serena"],
+      "command": ["uvx", "--from", "git+https://github.com/oraios/serena",
+                  "serena", "start-mcp-server",
+                  "--context", "ide-assistant", "--project", "."],
       "enabled": true
     }
   }
 }
 ```
+
+> **Air-Gap Note**: For air-gapped environments, replace `git+https://` with locally installed packages.
+> Pre-install Serena via `pip install serena` and use the local binary path instead.
 
 ## Quick Start Workflow
 
@@ -79,9 +84,20 @@ opencode
 /init
 ```
 
-This creates `AGENTS.md` — an AI-friendly project description.
+This creates `AGENTS.md`, an AI-friendly project description.
 
-### Step 2: Start Coding
+### Step 2: Install Oh-My-OpenCode-Slim Plugin
+
+```bash
+bunx oh-my-opencode-slim@latest install
+```
+
+This transforms OpenCode into a multi-agent system with specialized agents for different tasks. See the [OpenCode Setup Guide](./opencode-setup.md#oh-my-opencode-slim-plugin) for full configuration details.
+
+> **Air-Gap Warning**: `bunx` downloads from npm. For air-gapped environments, pre-install
+> on a connected machine and transfer via internal npm mirror (Verdaccio).
+
+### Step 3: Start Coding
 
 #### Plan Mode (Review Before Building)
 ```
@@ -97,7 +113,7 @@ Press Tab to switch to Build mode
 > Create a function that validates email addresses
 ```
 
-### Step 3: Common Commands
+### Step 4: Common Commands
 
 | Command | Function |
 |---------|----------|
@@ -187,17 +203,22 @@ Updating...
   "mcp": {
     "serena": {
       "type": "local",
-      "command": ["npx", "-y", "@oraios/serena"],
+      "command": ["uvx", "--from", "git+https://github.com/oraios/serena",
+                  "serena", "start-mcp-server",
+                  "--context", "ide-assistant", "--project", "."],
       "enabled": true
     },
-    "filesystem": {
+    "srclight": {
       "type": "local",
-      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed"],
+      "command": ["srclight", "serve", "--workspace", "default"],
       "enabled": true
     }
   }
 }
 ```
+
+> **Air-Gap Warning**: `npx -y` commands always download packages from the npm registry.
+> For air-gapped environments, pre-install all MCP server packages locally before disconnecting.
 
 ### Adding Remote MCP Servers
 ```json
@@ -223,8 +244,7 @@ Updating...
   "agent": {
     "reviewer": {
       "tools": {
-        "serena*": true,
-        "gh_grep*": true
+        "serena*": true
       }
     }
   }
@@ -239,7 +259,8 @@ Updating...
 
 ### "MCP server timeout"
 - Increase timeout in config: `"timeout": 30000`
-- Check server is installed: `npx -y @oraios/serena --version`
+- Check server is installed: `serena --version` or `srclight --version`
+- For air-gapped: verify all dependencies are locally installed
 
 ### "Code not being indexed"
 - Ensure `compile_commands.json` exists (for C/C++)
@@ -249,4 +270,5 @@ Updating...
 
 - Read the [Architecture Overview](../architecture/overview.md)
 - Set up [Serena](./serena-quickstart.md) for symbolic code navigation
-- Configure [Local Embeddings](./srclight-setup.md) for semantic search
+- Configure [Srclight](./srclight-quickstart.md) for hybrid code search
+- Review the [Security Assessment](../research/security-assessment.md) for air-gapped deployment

@@ -2,70 +2,114 @@
 
 ## What is Srclight?
 
-**Srclight** is the **semantic layer** of the Oh-My-OpenCode-Slim stack. It provides air-gap certified code indexing using local vector embeddings for natural language search across your codebase.
+**Srclight** is the **semantic layer** of the air-gapped AI coding architecture. Deep code indexing for AI agents, built on SQLite FTS5, tree-sitter, embeddings, and the Model Context Protocol (MCP).
+
+### Core Architecture
+
+Srclight combines three indexing strategies into a single hybrid search engine:
+
+1. **Tree-sitter parsing** extracts precise symbols (functions, classes, methods, interfaces, structs), builds call graph edges, and maps type hierarchies across 7 supported languages.
+2. **FTS5 trigram + porter stemmer** provides fast keyword search with fuzzy matching.
+3. **Semantic embeddings via Ollama** enable natural language queries against your codebase.
+
+Search results merge keyword and semantic matches through **Reciprocal Rank Fusion (RRF)**, giving you the best of both approaches in a single query.
 
 ### Key Features
-- **100% Offline** — All embeddings stored locally, no cloud dependency
-- **Natural Language Search** — Find code by describing what you want
-- **Similar Code Search** — Find patterns similar to a code snippet
-- **SQLite Backend** — Lightweight, fast, embedded vector storage
-- **Token Efficient** — Complements Serena's symbolic search with semantic understanding
+
+- **Hybrid Search** combines FTS5 keyword matching with semantic embeddings via RRF
+- **100% Offline** when paired with Ollama for local embeddings
+- **25 MCP Tools** covering symbol search, relationship graphs, git change intelligence, semantic search, build system awareness, and document extraction
+- **Tree-sitter Symbol Extraction** for precise structural understanding
+- **Multi-repo Workspaces** via ATTACH across SQLite databases and UNION across schemas
+- **SQLite Backend** for lightweight, fast, embedded storage
+- **7 Language Support** via tree-sitter grammars
+
+### Supported Languages
+
+| Language | Tree-sitter Grammar | Symbol Types |
+|----------|---------------------|--------------|
+| C | tree-sitter-c | functions, structs, enums, typedefs |
+| C++ | tree-sitter-cpp | classes, methods, functions, structs, namespaces |
+| Python | tree-sitter-python | classes, functions, methods, decorators |
+| TypeScript | tree-sitter-typescript | classes, interfaces, functions, types |
+| JavaScript | tree-sitter-javascript | classes, functions, methods |
+| Rust | tree-sitter-rust | structs, enums, traits, functions, impls |
+| Go | tree-sitter-go | structs, interfaces, functions, methods |
 
 ## Installation
 
 ### Quick Install
+
 ```bash
 pip install srclight
-
-# With GPU support
-pip install srclight[gpu]
 ```
 
-### Pre-download Embedding Models (Air-gapped)
+GPU acceleration for embeddings is handled by Ollama, not by Srclight itself. For optional CuPy-based acceleration of other operations:
+
 ```bash
-python -c "from sentence_transformers import SentenceTransformer; model = SentenceTransformer('all-MiniLM-L6-v2')"
+pip install cupy-cuda12x  # Optional, for CUDA 12.x
 ```
 
-### Install Language Servers (for code parsing)
+### Install Ollama (Required for Embeddings)
+
+Ollama provides the local embedding models. Install it before indexing.
+
 ```bash
-# C/C++ - choose one
-apt-get install clangd  # Recommended
-# or
-apt-get install ccls
+# macOS
+brew install ollama
 
-# Python
-pip install python-lsp-server
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh
 
-# TypeScript
-npm install -g typescript-language-server
+# Start the Ollama service
+ollama serve
+```
+
+### Pull Embedding Models
+
+```bash
+# Default: best local quality, needs ~6GB VRAM
+ollama pull qwen3-embedding
+
+# Alternative: lighter model, works on 8GB VRAM systems
+ollama pull nomic-embed-text
+```
+
+For air-gapped deployments, pull models **before** disconnecting from the network. Ollama stores models locally and serves them without any network access afterward.
+
+### Air-gapped Preparation Checklist
+
+```bash
+# 1. Install Srclight
+pip install srclight
+
+# 2. Install Ollama and pull model while online
+ollama pull qwen3-embedding
+
+# 3. Verify model is available locally
+ollama list
+
+# 4. Disconnect from network. Everything runs offline from here.
 ```
 
 ## Configuration
 
-### Basic Configuration (.srclight/config.yml)
+Srclight creates its configuration automatically on first run. The config lives in `.srclight/` at your project root.
+
+### Configuration Reference (.srclight/config.yml)
+
 ```yaml
-network:
-  offline_mode: true  # Mandatory for air-gap
-
-parsers:
-  - cpp
-  - python
-  - rust
-  - typescript
-  - javascript
-
 database:
   path: .srclight/index.db
 
 embeddings:
-  model: all-MiniLM-L6-v2
-  device: cpu  # or cuda for GPU
-  cache: .srclight/models/
-  dimensions: 384
+  provider: ollama
+  model: qwen3-embedding       # Default: best quality
+  # model: nomic-embed-text    # Alternative: lighter, 8GB VRAM
 
 indexing:
   batch_size: 100
-  max_file_size: 1048576  # 1MB
+  max_file_size: 1048576        # 1MB
   exclude:
     - "*.min.js"
     - "*.bundle.js"
@@ -74,49 +118,73 @@ indexing:
     - ".git/"
 ```
 
+### Embedding Model Options
+
+| Model | Provider | VRAM | Quality | Offline |
+|-------|----------|------|---------|---------|
+| `qwen3-embedding` | Ollama | ~6GB | Best local | Yes |
+| `nomic-embed-text` | Ollama | ~4GB | Good | Yes |
+| `voyage-code-3` | Voyage AI | N/A | Best overall | No (API key required) |
+
+For air-gapped deployments, use `qwen3-embedding` or `nomic-embed-text`. The `voyage-code-3` option exists for environments with network access but is **not recommended** for air-gapped deployments.
+
 ## Quick Start Workflow
 
-### Step 1: Initialize Index
+### Step 1: Index Your Project
+
 ```bash
 # Index entire project
 srclight index /path/to/project
 
-# Or with custom config
-srclight index /path/to/project --config .srclight/config.yml
+# Index with a named workspace (for multi-repo setups)
+srclight index /path/to/project --workspace myproject
 ```
 
-### Step 2: Incremental Updates
+Tree-sitter parses each file, extracts symbols and relationships, then Ollama generates embeddings. The resulting index lands in `.srclight/index.db`.
+
+### Step 2: Start the MCP Server
+
 ```bash
-# After code changes
-srclight update --incremental
-
-# Full reindex
-srclight index --rebuild
+# Serve as MCP server for OpenCode integration
+srclight serve --workspace myproject
 ```
+
+This exposes all 25 MCP tools to the orchestration layer.
 
 ### Step 3: Search
-```bash
-# Natural language search
-srclight search "authentication flow"
 
-# Similar code search
-srclight find-similar "function parseJson(input: string)"
+```bash
+# Hybrid search (keyword + semantic, merged via RRF)
+srclight search "authentication flow"
 
 # Filter by language
 srclight search "JWT validation" --lang python
+
+# Symbol-specific search
+srclight search "parseJson" --type function
+```
+
+### Step 4: Incremental Updates
+
+```bash
+# After code changes, update only modified files
+srclight update --incremental
+
+# Full reindex when needed
+srclight index --rebuild
 ```
 
 ## Use Cases
 
 ### Use Case 1: Finding Code by Description
 
-**Scenario**: You know what you want but not where it is
+**Scenario**: You know what you want but not where it is.
 
 ```
 You: Where do we handle JWT token validation?
 
-Srclight:
-Found 5 matches:
+Srclight (hybrid search):
+Found 5 matches (keyword + semantic fusion):
 
 1. src/auth/jwt.py:22 - validate_token()
    Score: 0.92
@@ -133,7 +201,7 @@ Found 5 matches:
 
 ### Use Case 2: Finding Similar Code
 
-**Scenario**: You have a code snippet and want to find similar patterns
+**Scenario**: You have a code snippet and want to find similar patterns.
 
 ```
 You: Find all code similar to this function signature
@@ -151,7 +219,7 @@ Pattern: "create_*" functions returning result objects
 
 ### Use Case 3: Semantic Exploration
 
-**Scenario**: Understand "how" something works across the codebase
+**Scenario**: Understand "how" something works across the codebase.
 
 ```
 You: How does our caching work?
@@ -171,7 +239,7 @@ Usage patterns:
 
 ### Use Case 4: Bug Investigation
 
-**Scenario**: Find all error handling related to a specific area
+**Scenario**: Find all error handling related to a specific area.
 
 ```
 You: Find all error handling around database connections
@@ -189,90 +257,105 @@ Found 8 relevant locations:
    Global exception handler for DB errors
 ```
 
-## Tools Reference
+### Use Case 5: Multi-repo Search
 
-### Command Line Interface
+**Scenario**: Search across multiple repositories in a single query.
+
+```bash
+# Index multiple repos into separate workspaces
+srclight index /path/to/frontend --workspace frontend
+srclight index /path/to/backend --workspace backend
+srclight index /path/to/shared-lib --workspace shared
+
+# Srclight ATTACHes SQLite databases and UNIONs across schemas
+srclight search "user authentication" --workspace frontend,backend,shared
+```
+
+## MCP Tools Reference
+
+Srclight exposes 25 tools through the MCP protocol. Key categories:
+
+### Symbol Search Tools
+
+| Tool | Description |
+|------|-------------|
+| `search_symbols` | Find symbols by name pattern |
+| `search_semantic` | Natural language code search |
+| `search_hybrid` | Combined keyword + semantic search (RRF) |
+| `find_similar` | Find code similar to a snippet |
+
+### Relationship Graph Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_call_graph` | Function call relationships |
+| `get_type_hierarchy` | Class/struct inheritance trees |
+| `get_references` | Where a symbol is used |
+| `get_dependencies` | Module/file dependency graph |
+
+### Git Change Intelligence Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_recent_changes` | Recently modified symbols |
+| `get_change_frequency` | Hot spots in the codebase |
+| `get_co_change_patterns` | Files that change together |
+
+### Build System and Document Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_build_targets` | Build system target analysis |
+| `extract_docs` | Extract documentation from code |
+| `get_file_summary` | Summarize file contents |
+
+### CLI Commands
 
 | Command | Description |
 |---------|-------------|
 | `srclight index <path>` | Index a project directory |
-| `srclight update` | Incremental index update |
-| `srclight search <query>` | Natural language search |
-| `srclight find-similar <code>` | Find similar code |
+| `srclight update --incremental` | Incremental index update |
+| `srclight search <query>` | Hybrid search (keyword + semantic) |
+| `srclight serve --workspace <name>` | Start MCP server |
 | `srclight stats` | Show index statistics |
 | `srclight clear` | Clear the index |
-
-### Python API
-
-```python
-from srclight import SemanticSearch
-
-# Initialize
-search = SemanticSearch(
-    project_path="/path/to/project",
-    model_name="all-MiniLM-L6-v2"
-)
-
-# Index
-search.index()
-
-# Search
-results = search.semantic_search(
-    query="authentication JWT token validation",
-    top_k=5
-)
-
-# Similar
-similar = search.find_similar(
-    code_snippet="def validate_token(token):",
-    top_k=3
-)
-```
-
-### MCP Server Integration
-
-```json
-{
-  "mcp": {
-    "srclight": {
-      "type": "local",
-      "command": ["srclight", "serve"],
-      "enabled": true
-    }
-  }
-}
-```
 
 ## Performance Notes
 
 | Metric | Value |
 |--------|-------|
-| Index speed | ~1000 files/minute |
-| Search latency | <100ms (CPU) |
+| Index speed | ~1000 files/minute (CPU) |
+| Search latency | <100ms (hybrid search) |
 | Index size | ~1KB/file average |
-| Embedding model | all-MiniLM-L6-v2 (384 dims) |
+| Embedding model | qwen3-embedding via Ollama |
+| Embedding latency | ~50-200ms per MCP call |
 
 ### Optimization Tips
-- Use GPU for 10x faster indexing
-- Exclude test files for smaller index
-- Use incremental updates for active development
-- Batch size of 100 optimal for most systems
+
+- Ollama with GPU gives 5-10x faster embedding generation
+- Exclude test files and generated code for a smaller index
+- Incremental updates for active development (only re-indexes changed files)
+- FTS5 keyword search alone is sub-millisecond; embedding lookup adds the latency
+- Multi-repo workspaces share a single Ollama instance
 
 ## Integration with Serena
 
 Srclight works alongside Serena for complete codebase understanding:
 
 | Query Type | Handler | Example |
-|------------|---------|----------|
+|------------|---------|---------|
 | Symbol lookup | Serena | "Find function login_handler" |
 | Natural language | Srclight | "Where is auth handled?" |
-| File search | Both | "Find password validation" |
+| Relationship graph | Srclight | "What calls validate_token?" |
+| Code navigation | Serena | "Go to definition of UserService" |
+| Combined | Both | "Find password validation and show references" |
 
 ### Combined Workflow
+
 ```
 You: Find where we validate user passwords
 
-Srclight: [Semantic search]
+Srclight: [Hybrid search - keyword + semantic]
 Found in src/auth/validators.py:15
 
 You: Show me that function and all its references
@@ -284,27 +367,48 @@ References: 8 locations across 4 files
 
 ## Troubleshooting
 
-### "Model not found"
+### "Ollama connection refused"
+
 ```bash
-# Re-download embedding model
-python -c "from sentence_transformers import SentenceTransformer; model = SentenceTransformer('all-MiniLM-L6-v2')"
+# Verify Ollama is running
+ollama list
+
+# Start the service if needed
+ollama serve
+
+# Check the model is pulled
+ollama pull qwen3-embedding
+```
+
+### "Model not found"
+
+```bash
+# List available models
+ollama list
+
+# Pull the required model
+ollama pull qwen3-embedding
 ```
 
 ### "Index not found"
+
 ```bash
 # Create new index
 srclight index /path/to/project
 ```
 
 ### "Slow indexing"
-- Check GPU is available: `nvidia-smi`
+
+- Verify Ollama has GPU access for faster embeddings
 - Reduce batch_size in config
-- Exclude more directories
+- Exclude large directories (node_modules, build artifacts)
+- Check `ollama ps` to confirm model is loaded in memory
 
 ### "Memory issues"
-- Reduce batch_size
-- Use device: cpu instead of cuda
-- Exclude large files (binaries, builds)
+
+- Switch to `nomic-embed-text` (lighter model, ~4GB VRAM)
+- Reduce batch_size in config
+- Exclude large files (binaries, build outputs)
 
 ## Next Steps
 

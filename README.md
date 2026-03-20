@@ -86,7 +86,6 @@ Without this plugin, OpenCode runs as a single agent. With it:
 ```bash
 # 1. Install OpenCode
 curl -fsSL https://opencode.ai/install | bash
-# or: brew install anomalyco/tap/opencode
 # or: npm i -g opencode-ai@latest
 
 # 2. Install Oh-My-OpenCode-Slim plugin

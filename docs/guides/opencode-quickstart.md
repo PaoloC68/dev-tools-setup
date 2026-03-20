@@ -20,17 +20,22 @@ curl -fsSL https://opencode.ai/install | bash
 
 ### Platform-Specific
 ```bash
-# macOS/Linux with Homebrew (recommended — always up to date)
-brew install anomalyco/tap/opencode
+# Node.js (npm/bun/pnpm/yarn)
+npm i -g opencode-ai@latest
+
+# Arch Linux
+sudo pacman -S opencode        # stable
+paru -S opencode-bin           # latest from AUR
+
+# Debian / Ubuntu
+npm i -g opencode-ai@latest    # recommended
+# or grab the .deb from https://github.com/anomalyco/opencode/releases
 
 # Windows with Scoop
 scoop install opencode
 
 # Windows with Chocolatey
 choco install opencode
-
-# Node.js
-npm i -g opencode-ai@latest
 ```
 
 ## Configuration

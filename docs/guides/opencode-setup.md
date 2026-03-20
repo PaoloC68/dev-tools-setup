@@ -19,11 +19,6 @@ pip install "serena[mcp]"
 pip install srclight
 pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
 
-# Ollama for local embeddings (required by Srclight)
-# Download: https://ollama.com/download
-ollama pull qwen3-embedding    # Best local quality (~6GB VRAM)
-# ollama pull nomic-embed-text  # Lighter alternative (~4GB VRAM)
-
 # Language servers (for C/C++)
 apt-get install clangd  # or ccls
 
@@ -239,29 +234,6 @@ OpenCode routes queries to the appropriate MCP layer:
 
 For team and enterprise deployments, OpenCode supports centralized patterns:
 
-### Shared Ollama Server
-
-Deploy a central Ollama instance serving embedding models to all team members:
-
-```bash
-# On the central server:
-OLLAMA_HOST=0.0.0.0:11434 ollama serve
-
-# Pre-load models:
-ollama pull qwen3-embedding
-ollama pull nomic-embed-text
-```
-
-Configure each developer's Srclight to point to the shared server:
-
-```yaml
-# .srclight/config.yml on each workstation
-embeddings:
-  provider: ollama
-  host: http://ollama-server.internal:11434
-  model: qwen3-embedding
-```
-
 ### Configuration-as-Code
 
 Distribute consistent tool configurations via version control:
@@ -282,7 +254,7 @@ team-dotfiles/
 │            Internal Network                  │
 │                                              │
 │  ┌──────────┐  ┌───────────┐  ┌───────────┐ │
-│  │ Verdaccio│  │  devpi    │  │  Ollama   │ │
+│  │ Verdaccio│  │  devpi    │  │ Inference │ │
 │  │ (npm)    │  │  (PyPI)   │  │  Server   │ │
 │  └──────────┘  └───────────┘  └───────────┘ │
 │       │             │              │         │
@@ -293,15 +265,15 @@ team-dotfiles/
 └─────────────────────────────────────────────┘
 ```
 
-1. **Verdaccio** (npm mirror): Hosts @oraios/serena and MCP dependencies
-2. **devpi** (PyPI mirror): Hosts srclight, memora, sentence-transformers wheels
-3. **Ollama Server**: Central embedding model serving
+1. **Verdaccio** (npm mirror): Hosts oh-my-opencode-slim and MCP dependencies
+2. **devpi** (PyPI mirror): Hosts srclight, memora, serena wheels
+3. **Inference Server**: Central LLM and embedding model serving (OpenAI-compatible API)
 4. **Shared Git repos**: Team configurations and Srclight indexes
 
 ### Monitoring
 
 - Track MCP server health via process monitoring
-- Monitor Ollama GPU utilization for embedding workloads
+- Monitor inference server latency for embedding workloads
 - Log Serena onboarding times to detect performance issues
 - Audit Memora database sizes per project
 

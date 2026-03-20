@@ -48,7 +48,8 @@ For the detailed analysis, see [Why Orchestration](docs/research/orchestration-v
     │(Symbolic)│   │(Semantic)│   │(Memory)  │
     └──────────┘   └──────────┘   └──────────┘
        clangd       tree-sitter    SQLite
-       ccls         FTS5 + Ollama
+       ccls         FTS5 + embeddings
+                    (internal server)
 ```
 
 ## Components
@@ -58,7 +59,7 @@ For the detailed analysis, see [Why Orchestration](docs/research/orchestration-v
 | **[OpenCode](https://opencode.ai)** | Base Agent | Terminal AI coding assistant. Plugin system, MCP support, multi-provider. |
 | **[Oh-My-OpenCode-Slim](https://github.com/alvinunreal/oh-my-opencode-slim)** | Orchestration Plugin | Transforms OpenCode into a multi-agent system. 7 specialized agents, model routing, background tasks, lifecycle hooks. |
 | **[Serena](docs/guides/serena-quickstart.md)** | Symbolic MCP Server | LSP-based code navigation via clangd/ccls. 30+ languages, 13 tools. |
-| **[Srclight](docs/guides/srclight-quickstart.md)** | Semantic MCP Server | Hybrid search: FTS5 trigram + Ollama embeddings via RRF. 25 tools, 7 languages. |
+| **[Srclight](docs/guides/srclight-quickstart.md)** | Semantic MCP Server | Hybrid search: FTS5 trigram + embeddings via RRF. 25 tools, 7 languages. |
 | **[Memora](docs/guides/memora-config.md)** | Persistence MCP Server | Cross-session context, SQLite backend. Cloud sync DISABLED for air-gap. |
 
 ## Why Oh-My-OpenCode-Slim
@@ -96,9 +97,8 @@ pip install "serena[mcp]"
 pip install srclight
 pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
 
-# 4. Install Ollama + embedding model
-brew install ollama            # or curl -fsSL https://ollama.com/install.sh | sh
-ollama pull qwen3-embedding    # default model (~6GB VRAM)
+# 4. Verify internal inference server is reachable
+curl http://inference.internal/v1/models
 
 # 5. Generate compile_commands.json (C/C++ projects)
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -B build .
@@ -147,7 +147,7 @@ opencode
 ## Key Technical Details
 
 - **Orchestration**: Oh-My-OpenCode-Slim plugin with 7 agents, model routing, background tasks
-- **Embeddings**: Ollama with `qwen3-embedding` (default) or `nomic-embed-text` (lighter)
+- **Embeddings**: Internal OpenAI-compatible server (`text-embedding-gte-multilingual-base`)
 - **Search**: Hybrid — FTS5 trigram + semantic via Reciprocal Rank Fusion
 - **Parsing**: tree-sitter (C, C++, Python, TypeScript, JavaScript, Rust, Go)
 - **C/C++ LSP**: clangd (recommended) or ccls (large codebases)
@@ -165,7 +165,7 @@ Air-gapped by design. The CRITICAL and HIGH labels below refer to known risks in
 | Serena binds to 0.0.0.0 | HIGH | Set `enable_gui_logging: false` in project.yml |
 | MCP prompt injection | HIGH | Pin server versions, audit tool descriptions |
 | Memora cloud sync | MEDIUM | Leave `MEMORA_STORAGE_URI` unset |
-| Model auto-download | MEDIUM | Pre-pull all Ollama models before air-gap |
+| Model access | MEDIUM | Verify internal inference server is reachable before going air-gap |
 | OMO Slim bunx install | MEDIUM | Pre-install via npm cache or Verdaccio mirror |
 
 Full analysis: [Security Assessment](docs/research/security-assessment.md)

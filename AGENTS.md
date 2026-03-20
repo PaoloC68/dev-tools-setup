@@ -9,7 +9,7 @@ Stack components documented here:
 - **OpenCode** — Base terminal AI coding agent (anomalyco/opencode)
 - **Oh-My-OpenCode-Slim** — Orchestration plugin that provides multi-agent hub-and-spoke coordination
 - **Serena** — Symbolic/structural MCP server (LSP-based symbol navigation via clangd/ccls)
-- **Srclight** — Semantic search MCP server (hybrid search: SQLite FTS5 + tree-sitter + Ollama embeddings)
+- **Srclight** — Semantic search MCP server (hybrid search: SQLite FTS5 + tree-sitter + embeddings via internal inference server)
 - **Memora** — Persistence MCP server (cross-session memory, SQLite, cloud sync DISABLED for air-gap)
 
 Architecture: hub-and-spoke. Oh-My-OpenCode-Slim orchestrates specialized agents (Sisyphus, Prometheus, Oracle, Explorer, Librarian, Designer, Fixer) that coordinate Serena, Srclight, and Memora via MCP.
@@ -117,7 +117,7 @@ When editing docs, maintain consistency with these architectural facts:
 | Memora | local SQLite (cloud sync disabled) | Historical + semantic | "What did we decide?" |
 
 Key technical details to preserve:
-- Srclight embeddings: Ollama with `qwen3-embedding` (default) or `nomic-embed-text` (lighter)
+- Srclight embeddings: internal OpenAI-compatible inference server, model `text-embedding-gte-multilingual-base`
 - Srclight search: Hybrid — FTS5 trigram + semantic via Reciprocal Rank Fusion (RRF)
 - Srclight parsing: tree-sitter (7 languages: C, C++, Python, TypeScript, JavaScript, Rust, Go)
 - C/C++ LSP: clangd (default, recommended) or ccls (alternative)
@@ -162,7 +162,7 @@ This is an air-gapped stack. When editing docs:
 
 - Don't reference cloud services or external APIs — this is an air-gapped stack
 - Don't assume network access in any setup instructions
-- Don't use `all-MiniLM-L6-v2` as the Srclight embedding model — the correct default is `qwen3-embedding` via Ollama
+- Don't use `qwen3-embedding` or `all-MiniLM-L6-v2` as the Srclight embedding model — the correct model is `text-embedding-gte-multilingual-base` via the internal inference server
 - Don't recommend `npx -y` for air-gapped setups — it always downloads from npm
 - Don't omit air-gap warnings when documenting cloud-capable features (e.g., Memora sync)
 - Don't add unnecessary abstraction layers to documentation structure

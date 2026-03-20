@@ -114,11 +114,11 @@ OMO Slim implements a hub-and-spoke architecture where the Sisyphus agent acts a
 - **Parsing**: tree-sitter (precise symbol extraction: functions, classes, methods, interfaces, structs)
 - **Languages**: C, C++, Python, TypeScript, JavaScript, Rust, Go
 - **Keyword Search**: SQLite FTS5 with trigram + porter stemmer
-- **Semantic Search**: Local embeddings via Ollama (qwen3-embedding default, nomic-embed-text alternative)
+- **Semantic Search**: Embeddings via internal OpenAI-compatible inference server (`text-embedding-gte-multilingual-base`)
 - **Hybrid Search**: Reciprocal Rank Fusion combining FTS5 + semantic results
 - **Database**: SQLite (`.srclight/index.db`)
 - **Tools**: 25 MCP tools covering symbol search, relationship graphs, git change intelligence, semantic search, build system awareness, and document extraction
-- **Offline**: Requires pre-downloaded Ollama models; no runtime network access
+- **Offline**: Requires access to internal inference server; no external network access
 
 ## 5. Memora (Persistence MCP Server)
 
@@ -200,9 +200,10 @@ For team and enterprise deployments, the architecture supports centralized patte
 
 ```
 ┌──────────────────────────────────┐
-│     Ollama Server (Central)      │
-│   - qwen3-embedding              │
-│   - Code LLM (e.g. Qwen2.5)     │
+│     Internal Inference Server    │
+│   - text-embedding-gte-          │
+│     multilingual-base            │
+│   - LLM models                   │
 └──────────────┬───────────────────┘
                │ HTTP (internal network)
     ┌──────────┼──────────┐
@@ -214,10 +215,9 @@ For team and enterprise deployments, the architecture supports centralized patte
 ### Configuration-as-Code
 
 - Version control `.serena/project.yml` for team-wide LSP settings
-- Shared `.srclight/` configuration via repository
-- Centralized Ollama model registry for consistent embeddings
+- Shared `.srclight/` configuration via repository (pointing to internal inference server)
 - OpenCode config (`~/.config/opencode/opencode.json`) distributable via dotfiles repo
-- OMO Slim config (`~/.config/opencode/oh-my-opencode-slim.json`) shareable for consistent agent behavior
+- OMO Slim config shareable for consistent agent behavior
 
 ### Enterprise Deployment Pattern
 
@@ -269,7 +269,7 @@ User Query
 ## Requirements
 
 - `compile_commands.json` at repository root (C/C++ projects)
-- Ollama with pre-downloaded embedding models (qwen3-embedding or nomic-embed-text)
+- Internal inference server reachable at `http://inference.internal/v1` (or equivalent)
 - Language servers (clangd/ccls) installed locally
 - Bun runtime for OMO Slim installation (`bunx oh-my-opencode-slim@latest install`)
 - Python 3.10+ for Srclight

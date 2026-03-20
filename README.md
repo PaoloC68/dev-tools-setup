@@ -31,14 +31,14 @@ For the detailed analysis, see [Why Orchestration](docs/research/orchestration-v
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    OpenCode (Base Agent)                     │
+│                      Crush (Base Agent)                      │
 │              Terminal AI Coding Assistant                    │
 ├─────────────────────────────────────────────────────────────┤
 │              Oh-My-OpenCode-Slim (Plugin)                   │
 │         Multi-Agent Orchestration & Task Delegation          │
 │                                                             │
-│  Sisyphus   Prometheus   Oracle   Explorer                  │
-│  Librarian  Designer     Fixer                              │
+│  Orchestrator   Oracle   Explorer   Librarian               │
+│  Designer       Fixer                                       │
 └─────────────────────────┬───────────────────────────────────┘
                           │ MCP (stdio)
           ┌───────────────┼───────────────┐
@@ -55,26 +55,24 @@ For the detailed analysis, see [Why Orchestration](docs/research/orchestration-v
 
 | Component | Role | What It Does |
 |-----------|------|-------------|
-| **[OpenCode](https://opencode.ai)** | Base Agent | Terminal AI coding assistant. Plugin system, MCP support, multi-provider. |
-| **[Oh-My-OpenCode-Slim](https://github.com/alvinunreal/oh-my-opencode-slim)** | Orchestration Plugin | Transforms OpenCode into a multi-agent system. 7 specialized agents, model routing, background tasks, lifecycle hooks. |
+| **[Crush](https://github.com/charmbracelet/crush)** | Base Agent | Terminal AI coding assistant. MCP support, multi-provider, LSP integration. Successor to OpenCode. |
+| **[Oh-My-OpenCode-Slim](https://github.com/alvinunreal/oh-my-opencode-slim)** | Orchestration Plugin | Transforms Crush into a multi-agent system. 6 specialized agents, model routing, background tasks. |
 | **[Serena](docs/guides/serena-quickstart.md)** | Symbolic MCP Server | LSP-based code navigation via clangd/ccls. 30+ languages, 13 tools. |
 | **[Srclight](docs/guides/srclight-quickstart.md)** | Semantic MCP Server | Hybrid search: FTS5 trigram + Ollama embeddings via RRF. 25 tools, 7 languages. |
-| **[Memora](docs/guides/memora-config.md)** | Persistence MCP Server | Cross-session context, SQLite backend. Cloud sync DISABLED for air-gap. |
+| **[Memora](docs/guides/memora-quickstart.md)** | Persistence MCP Server | Cross-session context, SQLite backend. Cloud sync DISABLED for air-gap. |
 
 ## Why Oh-My-OpenCode-Slim
 
-Without this plugin, OpenCode runs as a single agent. With it:
+Without this plugin, Crush runs as a single agent. With it:
 
-- **7 specialized agents** handle different task types in parallel
+- **6 specialized agents** handle different task types in parallel
 - **Model routing** assigns cheap models to exploration, expensive models to planning
 - **Background tasks** run concurrently (Explorer, Librarian)
 - **MCP coordination** routes queries to Serena, Srclight, or Memora automatically
-- **25+ lifecycle hooks** manage session behavior and compaction
 
 | Agent | Role | Typical Task |
 |-------|------|-------------|
-| Sisyphus | Orchestrator | Delegates to specialists, tracks progress via TODOs |
-| Prometheus | Planner | Creates parallel task graphs before complex implementations |
+| Orchestrator | Coordinator | Delegates to specialists, determines optimal path to any goal |
 | Oracle | Advisor | Architecture review, debugging after failed attempts |
 | Explorer | Recon | Parallel codebase search, runs in background |
 | Librarian | Knowledge | External docs, OSS examples, GitHub search |
@@ -84,14 +82,17 @@ Without this plugin, OpenCode runs as a single agent. With it:
 ## Quick Start
 
 ```bash
-# 1. Install OpenCode
-curl -fsSL https://opencode.ai/install | bash
+# 1. Install Crush
+brew install charmbracelet/tap/crush   # macOS/Linux
+# or: npm install -g @charmland/crush
 
 # 2. Install Oh-My-OpenCode-Slim plugin
 bunx oh-my-opencode-slim@latest install
 
 # 3. Install MCP servers
-pip install serena srclight
+pip install "serena[mcp]"
+pip install srclight
+pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
 
 # 4. Install Ollama + embedding model
 brew install ollama            # or curl -fsSL https://ollama.com/install.sh | sh
@@ -105,11 +106,12 @@ srclight index /path/to/repo --embed qwen3-embedding
 
 # 7. Start MCP servers and launch
 srclight serve --workspace default &
-opencode
+crush
 ```
 
 > **Air-Gap Note**: Download all packages, models, and dependencies BEFORE disconnecting.
 > `bunx` and `npx -y` always download — pre-install everything via npm cache or internal mirrors.
+> Disable Crush's provider auto-update: `export CRUSH_DISABLE_PROVIDER_AUTO_UPDATE=1`
 
 ## Documentation Index
 
@@ -123,12 +125,13 @@ opencode
 
 | Document | Description |
 |----------|-------------|
-| [OpenCode Quickstart](docs/guides/opencode-quickstart.md) | Install OpenCode and Oh-My-OpenCode-Slim plugin |
-| [OpenCode Setup](docs/guides/opencode-setup.md) | Plugin config, agent model routing, enterprise deployment |
+| [Crush Quickstart](docs/guides/opencode-quickstart.md) | Install Crush and Oh-My-OpenCode-Slim plugin |
+| [Crush Setup](docs/guides/opencode-setup.md) | Plugin config, agent model routing, enterprise deployment |
 | [Serena Quickstart](docs/guides/serena-quickstart.md) | LSP-based symbolic navigation, 13 tools, C/C++ setup |
 | [Srclight Quickstart](docs/guides/srclight-quickstart.md) | Hybrid code search, 25 MCP tools, tree-sitter, 7 languages |
 | [Srclight Setup](docs/guides/srclight-setup.md) | Installation, Ollama config, multi-repo workspaces |
-| [Memora Configuration](docs/guides/memora-config.md) | Persistence layer, air-gap compliance, security config |
+| [Memora Quickstart](docs/guides/memora-quickstart.md) | Persistence layer setup, air-gap compliance, tools reference |
+| [Memora Configuration](docs/guides/memora-config.md) | Persistence layer configuration reference |
 
 ### Research
 
@@ -143,7 +146,7 @@ opencode
 
 ## Key Technical Details
 
-- **Orchestration**: Oh-My-OpenCode-Slim plugin with 7 agents, model routing, background tasks
+- **Orchestration**: Oh-My-OpenCode-Slim plugin with 6 agents, model routing, background tasks
 - **Embeddings**: Ollama with `qwen3-embedding` (default) or `nomic-embed-text` (lighter)
 - **Search**: Hybrid — FTS5 trigram + semantic via Reciprocal Rank Fusion
 - **Parsing**: tree-sitter (C, C++, Python, TypeScript, JavaScript, Rust, Go)
@@ -174,12 +177,13 @@ docs/
 ├── architecture/
 │   └── overview.md              # System design, agents, SOTA comparison
 ├── guides/
-│   ├── opencode-quickstart.md   # Base agent + plugin setup
+│   ├── opencode-quickstart.md   # Crush (base agent) + plugin setup
 │   ├── opencode-setup.md        # Plugin config, enterprise deployment
 │   ├── serena-quickstart.md     # Symbolic layer (LSP)
 │   ├── srclight-quickstart.md   # Semantic layer (hybrid search)
 │   ├── srclight-setup.md        # Srclight installation and config
-│   └── memora-config.md         # Persistence layer
+│   ├── memora-quickstart.md     # Persistence layer setup
+│   └── memora-config.md         # Persistence layer configuration reference
 └── research/
     ├── security-assessment.md   # Full security audit
     └── serena-lsp-guide.md      # LSP best practices
@@ -189,4 +193,4 @@ This repository contains only documentation. No source code, no build system, no
 
 ## License
 
-See individual component licenses: [OpenCode](https://github.com/anomalyco/opencode) (MIT), [Oh-My-OpenCode-Slim](https://github.com/alvinunreal/oh-my-opencode-slim) (MIT), [Serena](https://github.com/oraios/serena) (MIT), [Srclight](https://github.com/srclight/srclight) (MIT), [Memora](https://github.com/agentic-mcp-tools/memora) (MIT).
+See individual component licenses: [Crush](https://github.com/charmbracelet/crush) (FSL-1.1-MIT), [Oh-My-OpenCode-Slim](https://github.com/alvinunreal/oh-my-opencode-slim) (MIT), [Serena](https://github.com/oraios/serena) (MIT), [Srclight](https://github.com/srclight/srclight) (MIT), [Memora](https://github.com/agentic-box/memora) (MIT).

@@ -86,12 +86,16 @@ Without this plugin, OpenCode runs as a single agent. With it:
 ```bash
 # 1. Install OpenCode
 curl -fsSL https://opencode.ai/install | bash
+# or: brew install anomalyco/tap/opencode
+# or: npm i -g opencode-ai@latest
 
 # 2. Install Oh-My-OpenCode-Slim plugin
 bunx oh-my-opencode-slim@latest install
 
 # 3. Install MCP servers
-pip install serena srclight
+pip install "serena[mcp]"
+pip install srclight
+pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
 
 # 4. Install Ollama + embedding model
 brew install ollama            # or curl -fsSL https://ollama.com/install.sh | sh
@@ -109,7 +113,7 @@ opencode
 ```
 
 > **Air-Gap Note**: Download all packages, models, and dependencies BEFORE disconnecting.
-> `bunx` and `npx -y` always download — pre-install everything via npm cache or internal mirrors.
+> `bunx` and `uvx git+https://` always download — pre-install everything before going offline.
 
 ## Documentation Index
 

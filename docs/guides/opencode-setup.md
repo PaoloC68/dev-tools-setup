@@ -1,21 +1,29 @@
-# OpenCode Setup Guide
+# Crush Setup Guide
 
-OpenCode is the **base AI coding agent** in this air-gapped architecture, providing terminal-based AI assistance with plugin extensibility.
+Crush is the **base AI coding agent** in this air-gapped architecture, providing terminal-based AI
+assistance with plugin extensibility.
+
+> **Note**: This project was originally called OpenCode. The `opencode-ai/opencode` repository was
+> archived in September 2025. The active project is `charmbracelet/crush`. See the
+> [Crush Quickstart](./opencode-quickstart.md) for installation.
 
 ## Overview
 
-OpenCode acts as a 100% offline IDE replacement, routing queries to localized MCP servers and coordinating six specialized agents for codebase intelligence.
+Crush acts as a 100% offline terminal coding agent, routing queries to local MCP servers and
+coordinating specialized agents for codebase intelligence via the Oh-My-OpenCode-Slim plugin.
 
 ## Prerequisites
 
 ```bash
-# Core dependencies (pre-download for air-gapped)
-pip install opencode serena srclight memora
+# MCP server dependencies (pre-download for air-gapped)
+pip install "serena[mcp]"
+pip install srclight
+pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
 
 # Ollama for local embeddings (required by Srclight)
 # Download: https://ollama.com/download
 ollama pull qwen3-embedding    # Best local quality (~6GB VRAM)
-# ollama pull nomic-embed-text  # Lighter alternative (8GB VRAM)
+# ollama pull nomic-embed-text  # Lighter alternative (~4GB VRAM)
 
 # Language servers (for C/C++)
 apt-get install clangd  # or ccls
@@ -45,34 +53,54 @@ bunx oh-my-opencode-slim@latest install --no-tui --tmux=no --skills=yes
 
 ### Configuration
 
-Config file: `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc` for comments)
+OMO Slim injects its configuration into Crush's config file (`.crush.json` or `~/.config/crush/crush.json`).
+The schema is available for editor autocomplete:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/alvinunreal/oh-my-opencode-slim/master/assets/oh-my-opencode-slim.schema.json",
+  "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
   "agents": {
-    "sisyphus": { "model": "anthropic/claude-opus-4" },
-    "prometheus": { "model": "anthropic/claude-opus-4" },
-    "oracle": { "model": "anthropic/claude-opus-4" },
-    "explorer": { "model": "anthropic/claude-haiku-3.5" },
-    "librarian": { "model": "anthropic/claude-haiku-3.5" },
-    "designer": { "model": "anthropic/claude-sonnet-4" },
-    "fixer": { "model": "anthropic/claude-sonnet-4" }
+    "orchestrator": { "model": "openai/gpt-5.4" },
+    "oracle": { "model": "openai/gpt-5.4" },
+    "explorer": { "model": "openai/gpt-5.4-mini" },
+    "librarian": { "model": "openai/gpt-5.4-mini" },
+    "designer": { "model": "kimi-for-coding/k2p5" },
+    "fixer": { "model": "openai/gpt-5.4-mini" }
+  }
+}
+```
+
+For local/air-gapped model routing, replace provider strings with your configured local provider:
+
+```json
+{
+  "agents": {
+    "orchestrator": { "model": "ollama/qwen3:30b" },
+    "oracle": { "model": "ollama/qwen3:30b" },
+    "explorer": { "model": "ollama/qwen3:7b" },
+    "librarian": { "model": "ollama/qwen3:7b" },
+    "designer": { "model": "ollama/qwen3:30b" },
+    "fixer": { "model": "ollama/qwen3:7b" }
   }
 }
 ```
 
 ### Specialized Agents
 
-| Agent | Role | Typical Model | Description |
+OMO Slim ships six agents. The names below are the actual agent identifiers in the plugin:
+
+| Agent | Role | Default Model | Description |
 |-------|------|---------------|-------------|
-| Sisyphus | Orchestrator | Opus-class | Main entry point. Delegates tasks to specialists. Never works alone when delegation is possible. |
-| Prometheus | Planner | Opus-class | Creates parallel task graphs, structured TODO lists. Invoked before complex implementations. |
-| Oracle | Advisor | Opus-class | Read-only consultant. Architecture review, debugging after 2+ failed attempts, complex tradeoffs. |
-| Explorer | Recon | Haiku-class | Parallel codebase exploration. Contextual grep, pattern discovery. Runs in background. Cheap and fast. |
-| Librarian | Knowledge | Haiku-class | External reference search. Official docs, OSS examples, GitHub code search. |
-| Designer | Visual | Sonnet-class | Frontend, UI/UX, design, styling, animation work. |
-| Fixer | Implementation | Sonnet-class | Bug fixes, quick changes, single-file modifications. |
+| Orchestrator | Coordinator | `gpt-5.4` | Main entry point. Delegates tasks to specialists. Determines optimal path to any goal. |
+| Oracle | Advisor | `gpt-5.4` | Read-only consultant. Architecture review, debugging after 2+ failed attempts, complex tradeoffs. |
+| Explorer | Recon | `gpt-5.4-mini` | Parallel codebase exploration. Contextual grep, pattern discovery. Runs in background. |
+| Librarian | Knowledge | `gpt-5.4-mini` | External reference search. Official docs, OSS examples, GitHub code search. |
+| Designer | Visual | `k2p5` | Frontend, UI/UX, design, styling, animation work. |
+| Fixer | Implementation | `gpt-5.4-mini` | Fast implementation specialist. Bug fixes, quick changes, single-file modifications. |
+
+> **Note**: This documentation project uses its own agent naming (Sisyphus, Prometheus, etc.) as
+> aliases for the OMO Slim agents above. The underlying plugin agents are Orchestrator, Oracle,
+> Explorer, Librarian, Designer, and Fixer.
 
 ### Pre-configured MCPs
 
@@ -109,167 +137,93 @@ Without OMO Slim, OpenCode runs as a single agent. With OMO Slim:
 
 ## Directory Structure
 
-
 ```
 project-root/
-├── .opencode/           # OpenCode configuration
-│   └── config.yml
+├── .crush.json          # Crush + OMO Slim configuration
 ├── .serena/             # Serena (symbolic layer)
-│   ├── memories/       # Persistent insights
+│   ├── memories/        # Persistent insights
 │   └── project.yml
 ├── .srclight/           # Srclight (semantic layer)
 │   ├── index.db
 │   └── config.yml
 ├── .memora/             # Memora (persistence layer)
-│   └── memory.db
-├── compile_commands.json
-└── opencode-workspace/
+│   └── memories.db
+└── compile_commands.json
 ```
 
 ## Configuration
 
-
-### OpenCode Config (.opencode/config.yml)
-
-```yaml
-# Orchestration settings
-orchestration:
-  mode: local           # Always local for air-gap
-  mcp_servers:
-    - serena
-    - srclight
-    - memora
-
-# Agent configuration
-agents:
-  - name: architect
-    role: system_design
-  - name: implementer
-    role: code_generation
-  - name: reviewer
-    role: code_review
-  - name: debugger
-    role: troubleshooting
-  - name: researcher
-    role: information_gathering
-  - name: security
-    role: vulnerability_analysis
-
-# Network (always offline)
-network:
-  offline_mode: true
-  proxy: null
-```
-
-### MCP Server Configuration (~/.opencode.json)
+### MCP Server Configuration (.crush.json)
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["oh-my-opencode-slim@latest"],
+  "$schema": "https://charm.land/crush.json",
   "mcp": {
     "serena": {
-      "type": "local",
-      "command": ["uvx", "--from", "git+https://github.com/oraios/serena",
-                  "serena", "start-mcp-server",
-                  "--context", "ide-assistant", "--project", "."],
-      "enabled": true
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/oraios/serena",
+        "serena", "start-mcp-server",
+        "--context", "ide-assistant", "--project", "."
+      ]
     },
     "srclight": {
-      "type": "local",
-      "command": ["srclight", "serve", "--workspace", "default"],
-      "enabled": true
+      "type": "stdio",
+      "command": "srclight",
+      "args": ["serve", "--workspace", "default"]
+    },
+    "memora": {
+      "type": "stdio",
+      "command": "memora-server",
+      "env": {
+        "MEMORA_DB_PATH": "~/.local/share/memora/memories.db",
+        "MEMORA_EMBEDDING_MODEL": "sentence-transformers",
+        "MEMORA_ALLOW_ANY_TAG": "1"
+      }
     }
+  },
+  "options": {
+    "disable_provider_auto_update": true
   }
 }
 ```
 
-> **Air-Gap Note**: For air-gapped environments, replace `git+https://` with locally installed packages.
-> Pre-install: `pip install serena` or `npm install -g @oraios/serena`
+> **Air-Gap Note**: Replace `git+https://` with locally installed packages.
+> Pre-install: `pip install "serena[mcp]"` and use the local binary path.
 
-## Integration Modes
+## Query Routing
 
-
-OpenCode supports three integration patterns:
-
-### 1. MCP Server Mode
-
-Standalone MCP server for 100% offline deployments:
-
-```bash
-opencode serve --port 3000
-```
-
-### 2. Agno Agent Mode
-
-Integrated as an agent tool:
-
-```python
-from agno import Agent
-agent = Agent(tools=[opencode_context])
-```
-
-### 3. Framework Integration
-
-Direct import for custom frameworks:
-
-```python
-from opencode import Orchestrator
-orch = Orchestrator()
-```
-
-## Usage
-
-### Starting a Session
-
-```bash
-# Initialize with project
-opencode init /path/to/project
-
-# Start interactive session
-opencode chat
-```
-
-### Query Routing
-
-OpenCode automatically routes queries to the appropriate layer:
+Crush routes queries to the appropriate MCP layer based on the task:
 
 | Query Type | Handler | Example |
-|------------|---------|----------|
+|------------|---------|---------|
 | Symbol lookup | Serena | "Find function auth_user" |
 | Natural language | Srclight | "Where is JSON parsing?" |
-| Session context | Memora | "What did we discuss about auth?" |
-
-### Agent Coordination
-
-```python
-# Delegate to specialized agent
-delegate to architect: "Design a caching layer"
-delegate to reviewer: "Review auth_module.cpp"
-```
+| Session context | Memora | "What did we decide about sessions?" |
 
 ## Workflow Example
 
-
 ```
 1. Onboarding
-   opencode init /project
+   crush
+   /init
    → Triggers Serena onboarding
    → Indexes with Srclight
 
 2. Development
    User: "Find the login handler"
    → Serena: find_symbol("login_handler")
-   
+
    User: "How does auth work?"
-   → Srclight: semantic_search("authentication flow")
-   
+   → Srclight: search_hybrid("authentication flow")
+
    User: "What did we decide about sessions?"
-   → Memora: query_context("session management")
+   → Memora: memory_search("session management")
 
 3. Memory
-   User: "Remember this insight"
-   → Serena: write_memory("JWT tokens expire in 24h")
+   User: "Remember: JWT tokens expire in 24h"
+   → Memora: memory_create(content="JWT tokens expire in 24h", tags=["architecture"])
 ```
 
 ## Centralized Management

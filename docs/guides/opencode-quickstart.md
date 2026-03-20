@@ -1,90 +1,162 @@
-# OpenCode Quickstart Guide
+# Crush Quickstart Guide
 
-## What is OpenCode?
+## What is Crush?
 
-**OpenCode** (opencode.ai) is an open-source AI coding agent with 120k+ GitHub stars. It provides a terminal-based interface, desktop app, or IDE extension for AI-assisted programming.
+**Crush** (github.com/charmbracelet/crush) is the terminal AI coding agent at the base of this
+architecture. Originally developed as OpenCode, it was adopted by the Charm team in September 2025
+and continues under the name Crush.
+
+> **Note**: The original `opencode-ai/opencode` repository is archived. All active development
+> is at `charmbracelet/crush`. The install commands, config format, and binary name have changed.
 
 ### Key Features
-- **100% Open Source** — MIT License, fully customizable
-- **Any Model** — 75+ LLM providers including Claude, GPT, Gemini, and local models
-- **Privacy First** — No code storage, supports local execution
-- **MCP Support** — Add custom MCP servers for extended capabilities
-- **Multi-session** — Start multiple agents in parallel on the same project
+
+- **Multi-Model**: Any LLM via OpenAI- or Anthropic-compatible APIs, plus built-in providers
+- **MCP Support**: `stdio`, `http`, and `sse` transport types
+- **LSP Integration**: Uses language servers for additional code context
+- **Session-Based**: Multiple work sessions per project
+- **Agent Skills**: Extensible via the [Agent Skills](https://agentskills.io) open standard
+- **100% Offline**: Local models via Ollama or LM Studio with `openai-compat` provider type
 
 ## Installation
 
-### Quick Install (Recommended)
+### Package Managers (Recommended)
+
 ```bash
-curl -fsSL https://opencode.ai/install | bash
+# macOS / Linux
+brew install charmbracelet/tap/crush
+
+# npm
+npm install -g @charmland/crush
+
+# Arch Linux
+yay -S crush-bin
+
+# Debian / Ubuntu
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+sudo apt update && sudo apt install crush
+
+# Windows
+winget install charmbracelet.crush
 ```
 
-### Platform-Specific
+### Go
+
 ```bash
-# macOS/Linux with Homebrew
-brew install opencode-ai/tap/opencode
-
-# Windows with Scoop
-scoop install opencode
-
-# Windows with Chocolatey
-choco install opencode
-
-# Node.js
-npm i -g opencode-ai@latest
+go install github.com/charmbracelet/crush@latest
 ```
+
+> **Air-Gap Note**: Download the binary or package before disconnecting. Crush auto-updates
+> its provider list from Catwalk on startup — disable this for air-gapped environments
+> (see Configuration below).
 
 ## Configuration
 
-### Connect an LLM Provider
-```bash
-# Run in OpenCode terminal
-/connect
-```
+### Config File Locations (priority order)
 
-Select your provider and enter API key. Recommended: OpenCode Zen (curated models).
+1. `.crush.json` (project root)
+2. `crush.json` (project root)
+3. `~/.config/crush/crush.json` (global)
 
-### Environment Variables
-```bash
-export OPENAI_API_KEY="your-api-key"
-export OPENAI_API_BASE="https://api.openai.com/v1"
+### Minimal Config with MCP Servers
 
-# Or for local models (Ollama)
-export OLLAMA_HOST="http://localhost:11434"
-```
-
-### Configuration File (~/.opencode.json)
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
-  "model": "claude-sonnet-4-5",
-  "provider": "openai",
+  "$schema": "https://charm.land/crush.json",
   "mcp": {
     "serena": {
-      "type": "local",
-      "command": ["uvx", "--from", "git+https://github.com/oraios/serena",
-                  "serena", "start-mcp-server",
-                  "--context", "ide-assistant", "--project", "."],
-      "enabled": true
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/oraios/serena",
+        "serena", "start-mcp-server",
+        "--context", "ide-assistant", "--project", "."
+      ]
+    },
+    "srclight": {
+      "type": "stdio",
+      "command": "srclight",
+      "args": ["serve", "--workspace", "default"]
+    },
+    "memora": {
+      "type": "stdio",
+      "command": "memora-server",
+      "env": {
+        "MEMORA_DB_PATH": "~/.local/share/memora/memories.db",
+        "MEMORA_EMBEDDING_MODEL": "sentence-transformers"
+      }
     }
   }
 }
 ```
 
-> **Air-Gap Note**: For air-gapped environments, replace `git+https://` with locally installed packages.
-> Pre-install Serena via `pip install serena` and use the local binary path instead.
+> **Air-Gap Note**: Replace `git+https://` with locally installed packages. Pre-install Serena
+> via `pip install serena` and use the local binary path. Disable provider auto-updates (see below).
+
+### Air-Gap Settings
+
+```json
+{
+  "$schema": "https://charm.land/crush.json",
+  "options": {
+    "disable_provider_auto_update": true
+  }
+}
+```
+
+Or via environment variable:
+
+```bash
+export CRUSH_DISABLE_PROVIDER_AUTO_UPDATE=1
+```
+
+### Local Model (Ollama)
+
+```json
+{
+  "$schema": "https://charm.land/crush.json",
+  "providers": {
+    "ollama": {
+      "name": "Ollama",
+      "base_url": "http://localhost:11434/v1/",
+      "type": "openai-compat",
+      "models": [
+        {
+          "name": "Qwen 3 30B",
+          "id": "qwen3:30b",
+          "context_window": 256000,
+          "default_max_tokens": 20000
+        }
+      ]
+    }
+  }
+}
+```
+
+### Environment Variables
+
+| Variable | Provider |
+|----------|----------|
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `OPENAI_API_KEY` | OpenAI |
+| `GEMINI_API_KEY` | Google Gemini |
+| `GROQ_API_KEY` | Groq |
+| `OPENROUTER_API_KEY` | OpenRouter |
+| `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` + `AWS_REGION` | Amazon Bedrock |
 
 ## Quick Start Workflow
 
 ### Step 1: Initialize a Project
+
 ```bash
 cd /path/to/your/project
-opencode
-
-# In OpenCode terminal
-/init
+crush
 ```
 
-This creates `AGENTS.md`, an AI-friendly project description.
+On first run, Crush prompts for an API key. Once configured, use `/init` to analyze the project
+and create an `AGENTS.md` context file.
 
 ### Step 2: Install Oh-My-OpenCode-Slim Plugin
 
@@ -92,183 +164,133 @@ This creates `AGENTS.md`, an AI-friendly project description.
 bunx oh-my-opencode-slim@latest install
 ```
 
-This transforms OpenCode into a multi-agent system with specialized agents for different tasks. See the [OpenCode Setup Guide](./opencode-setup.md#oh-my-opencode-slim-plugin) for full configuration details.
+Transforms Crush into a multi-agent system with specialized agents for different tasks.
+See the [Crush Setup Guide](./opencode-setup.md) for full configuration details.
 
 > **Air-Gap Warning**: `bunx` downloads from npm. For air-gapped environments, pre-install
 > on a connected machine and transfer via internal npm mirror (Verdaccio).
 
 ### Step 3: Start Coding
 
-#### Plan Mode (Review Before Building)
 ```
-Press Tab to switch to Plan mode
+crush
 > Add a user authentication module with JWT tokens
-
-# Review the plan, then press Tab to switch to Build mode
-```
-
-#### Build Mode (Direct Changes)
-```
-Press Tab to switch to Build mode
-> Create a function that validates email addresses
 ```
 
 ### Step 4: Common Commands
 
 | Command | Function |
 |---------|----------|
-| `/init` | Initialize project, generate AGENTS.md |
-| `/connect` | Connect or switch AI provider |
+| `/init` | Analyze project, generate AGENTS.md |
 | `/undo` | Undo last modification |
-| `/redo` | Redo previously undone modification |
-| `/share` | Generate shareable link to conversation |
-| `/clear` | Clear current session |
+| `crush logs` | Print recent logs |
+| `crush logs --follow` | Follow logs in real time |
+| `crush --yolo` | Skip all permission prompts (use with care) |
 
 ## Use Cases
 
 ### Use Case 1: New Feature Development
-```
-You: I need to add a caching layer to our API
 
-OpenCode: [Switches to Plan mode]
+```
+You: Add a caching layer to the API
+
+Crush: Exploring existing API structure...
+  Found: src/api/routes.py, src/services/
 
 Plan:
-1. Create cache/ directory with __init__.py
-2. Implement CacheManager class with TTL support
-3. Add Redis adapter for production
-4. Create in-memory adapter for development
-5. Update API endpoints to use caching
+  1. Create src/cache/ with Redis and in-memory adapters
+  2. Add @cached decorator
+  3. Update API endpoints
 
-You: Looks good, but use memcached instead of Redis
-
-OpenCode: Updated plan to use memcached...
-
-You: Ready to build
-
-OpenCode: [Switches to Build mode, implements changes]
+Proceed? [y/n]
 ```
 
 ### Use Case 2: Bug Investigation
+
 ```
 You: Find where the login handler is defined and trace its execution flow
 
-OpenCode: [Uses Serena tools to find symbol]
-Found login_handler in auth/routes.py:42
+Crush: [Uses Serena tools to find symbol]
+  Found login_handler in auth/routes.py:42
 
-Tracing flow:
-- login_handler → authenticate_user (auth/service.py:15)
-- authenticate_user → validate_token (auth/jwt.py:8)
-- validate_token → decode_jwt (auth/jwt.py:22)
-
-You: The token validation seems to be the issue. Show me the validate_token function
-
-OpenCode: [Shows the function code]
+  Execution flow:
+  - login_handler → authenticate_user (auth/service.py:15)
+  - authenticate_user → validate_token (auth/jwt.py:8)
+  - validate_token → decode_jwt (auth/jwt.py:22)
 ```
 
-### Use Case 3: Code Review
+### Use Case 3: Refactoring
+
 ```
-You: Review the payment processing code for security issues
+You: Rename UserService to AccountService and update all references
 
-OpenCode: Analyzing payment processing module...
-
-Findings:
-1. [HIGH] No input validation on amount field - potential float injection
-2. [MEDIUM] Missing rate limiting on payment endpoint
-3. [LOW] Hardcoded API key found in test file
-
-Would you like me to fix these issues?
-```
-
-### Use Case 4: Refactoring
-```
-You: Rename the UserService class to AccountService and update all references
-
-OpenCode: [Uses Serena's native refactoring]
-
-Found 47 references across 12 files:
-- src/models/user.py
-- src/services/user.py
-- src/api/routes.py
-- tests/
-
-Updating...
-✓ Updated 47 references in 12 files
+Crush: [Uses Serena's rename_symbol]
+  Found 47 references across 12 files
+  Updating...
+  Updated 47 references in 12 files
 ```
 
 ## MCP Server Integration
 
-### Adding Local MCP Servers
+### Disabling Specific MCP Tools
+
 ```json
 {
   "mcp": {
     "serena": {
-      "type": "local",
-      "command": ["uvx", "--from", "git+https://github.com/oraios/serena",
-                  "serena", "start-mcp-server",
-                  "--context", "ide-assistant", "--project", "."],
-      "enabled": true
-    },
-    "srclight": {
-      "type": "local",
-      "command": ["srclight", "serve", "--workspace", "default"],
-      "enabled": true
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/oraios/serena",
+               "serena", "start-mcp-server", "--context", "ide-assistant", "--project", "."],
+      "disabled_tools": ["execute_shell_command"]
     }
   }
 }
 ```
 
-> **Air-Gap Warning**: `npx -y` commands always download packages from the npm registry.
-> For air-gapped environments, pre-install all MCP server packages locally before disconnecting.
+### Disabling Built-In Tools
 
-### Adding Remote MCP Servers
 ```json
 {
-  "mcp": {
-    "sentry": {
-      "type": "remote",
-      "url": "https://mcp.sentry.dev/mcp",
-      "enabled": true
-    },
-    "gh_grep": {
-      "type": "remote",
-      "url": "https://mcp.grep.app",
-      "enabled": true
-    }
-  }
-}
-```
-
-### Per-Agent MCP Configuration
-```json
-{
-  "agent": {
-    "reviewer": {
-      "tools": {
-        "serena*": true
-      }
-    }
+  "options": {
+    "disabled_tools": ["bash", "sourcegraph"]
   }
 }
 ```
 
 ## Troubleshooting
 
-### "Model not found"
-- Verify provider and model naming format
-- Check API key is valid and has credits
+### "crush: command not found"
+
+```bash
+# Verify installation
+which crush
+
+# Reinstall via Homebrew
+brew install charmbracelet/tap/crush
+```
 
 ### "MCP server timeout"
-- Increase timeout in config: `"timeout": 30000`
-- Check server is installed: `serena --version` or `srclight --version`
+
+- Increase timeout in config: `"timeout": 120`
+- Verify server is installed: `serena --version` or `srclight --version`
 - For air-gapped: verify all dependencies are locally installed
 
+### "Provider auto-update fails"
+
+```bash
+export CRUSH_DISABLE_PROVIDER_AUTO_UPDATE=1
+```
+
 ### "Code not being indexed"
+
 - Ensure `compile_commands.json` exists (for C/C++)
 - Run `/init` to regenerate AGENTS.md
 
 ## Next Steps
 
 - Read the [Architecture Overview](../architecture/overview.md)
-- Set up [Serena](./serena-quickstart.md) for symbolic code navigation
+- Set up [Crush with Oh-My-OpenCode-Slim](./opencode-setup.md) for multi-agent orchestration
+- Configure [Serena](./serena-quickstart.md) for symbolic code navigation
 - Configure [Srclight](./srclight-quickstart.md) for hybrid code search
 - Review the [Security Assessment](../research/security-assessment.md) for air-gapped deployment

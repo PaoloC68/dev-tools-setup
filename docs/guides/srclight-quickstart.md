@@ -90,6 +90,50 @@ Replace `http://inference.internal/v1` with the actual base URL of your internal
 |-------|----------|---------|-------|
 | `text-embedding-gte-multilingual-base` | Internal server | Yes | Default for this deployment |
 
+### Local Fallback: infinity-emb
+
+If the internal inference server is unavailable (e.g., standalone workstation, offline development),
+`infinity-emb` provides an identical OpenAI-compatible embedding server that runs entirely on CPU.
+It supports `text-embedding-gte-multilingual-base` natively, so the Srclight config does not change —
+only the `base_url` differs.
+
+**Install:**
+
+```bash
+pip install "infinity-emb[all]"
+```
+
+**Run:**
+
+```bash
+infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 7997
+```
+
+> **Air-Gap Note**: Download the model before disconnecting. `infinity-emb` caches it in
+> `~/.cache/huggingface/`. Pre-download with:
+> ```bash
+> python -c "from huggingface_hub import snapshot_download; snapshot_download('Alibaba-NLP/gte-multilingual-base')"
+> export HF_HUB_OFFLINE=1  # prevent any network access after download
+> ```
+
+**Srclight config when using the local fallback:**
+
+```yaml
+embeddings:
+  provider: openai-compatible
+  base_url: http://localhost:7997/v1
+  model: text-embedding-gte-multilingual-base
+```
+
+**Comparison of embedding backends:**
+
+| Backend | Install | Memory | HTTP API | Air-Gap | Notes |
+|---------|---------|--------|----------|---------|-------|
+| Internal server | None | N/A | Yes | Yes (internal network) | Default |
+| `infinity-emb` | `pip install infinity-emb[all]` | ~600MB | Yes (OpenAI-compatible) | Yes (after model download) | Best local fallback |
+| `sentence-transformers` | `pip install sentence-transformers` | ~300MB | No (Python only) | Yes (after model download) | Direct Python, no HTTP server |
+| `fastembed` | `pip install fastembed` | ~200MB | No (Python only) | Yes (after model download) | Lightest footprint |
+
 ## Quick Start Workflow
 
 ### Step 1: Index Your Project

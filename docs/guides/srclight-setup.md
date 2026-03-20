@@ -39,6 +39,37 @@ indexing:
 
 Replace `http://inference.internal/v1` with the actual base URL of your internal inference server.
 
+## Local Fallback: infinity-emb
+
+If the internal inference server is unavailable, `infinity-emb` provides a drop-in local replacement.
+It serves the same model over the same OpenAI-compatible API — only the `base_url` changes.
+
+```bash
+# Install
+pip install "infinity-emb[all]"
+
+# Pre-download model (do this before going air-gapped)
+python -c "from huggingface_hub import snapshot_download; snapshot_download('Alibaba-NLP/gte-multilingual-base')"
+
+# Run (exposes http://localhost:7997/v1/embeddings)
+infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 7997
+```
+
+Update `.srclight/config.yml` to point at the local server:
+
+```yaml
+embeddings:
+  provider: openai-compatible
+  base_url: http://localhost:7997/v1
+  model: text-embedding-gte-multilingual-base
+```
+
+Set `HF_HUB_OFFLINE=1` after model download to prevent any Hugging Face network access:
+
+```bash
+export HF_HUB_OFFLINE=1
+```
+
 ## Usage
 
 ### Indexing

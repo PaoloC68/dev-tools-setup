@@ -6,13 +6,13 @@ Documentation repository for an **air-gapped AI-assisted coding architecture** �
 RAG stack for C/C++ codebase intelligence using the Model Context Protocol (MCP).
 
 Stack components documented here:
-- **Crush** — Base terminal AI coding agent (charmbracelet/crush, successor to OpenCode)
+- **OpenCode** — Base terminal AI coding agent (anomalyco/opencode)
 - **Oh-My-OpenCode-Slim** — Orchestration plugin that provides multi-agent hub-and-spoke coordination
 - **Serena** — Symbolic/structural MCP server (LSP-based symbol navigation via clangd/ccls)
 - **Srclight** — Semantic search MCP server (hybrid search: SQLite FTS5 + tree-sitter + Ollama embeddings)
 - **Memora** — Persistence MCP server (cross-session memory, SQLite, cloud sync DISABLED for air-gap)
 
-Architecture: hub-and-spoke. Oh-My-OpenCode-Slim orchestrates specialized agents (Orchestrator, Oracle, Explorer, Librarian, Designer, Fixer) that coordinate Serena, Srclight, and Memora via MCP.
+Architecture: hub-and-spoke. Oh-My-OpenCode-Slim orchestrates specialized agents (Sisyphus, Prometheus, Oracle, Explorer, Librarian, Designer, Fixer) that coordinate Serena, Srclight, and Memora via MCP.
 
 ## Repository Structure
 

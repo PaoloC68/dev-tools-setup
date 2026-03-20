@@ -12,7 +12,7 @@ Oh-My-OpenCode-Slim (OMO Slim) is an OpenCode plugin designed for connected envi
 | MCP servers | 3 (websearch, context7, grep_app) | Disable via `disabled_mcps` config |
 | Auto-update checker | 1 (npm registry fetch on session start) | Fails silently (5s timeout) |
 | CLI version check | 1 (npm registry) | Fails silently |
-| Model providers | Cloud by default (OpenAI, Kimi) | Must configure local (Ollama) |
+| Model providers | Cloud by default (OpenAI, Kimi) | Must configure internal inference server |
 | Schema URL | 1 (editor metadata, not fetched at runtime) | Optional: cache locally |
 | Installation | bunx (npm download) | Must pre-install |
 | Skills installation | npx downloads from GitHub repos | Install with `--skills=no` |
@@ -226,46 +226,40 @@ Additionally, OpenCode's per-agent tool control provides a second layer:
 
 OMO Slim routes different models to different agents. In connected environments, this uses cloud providers (Anthropic, OpenAI, Google, etc.). In air-gapped environments, **all models must be served locally**.
 
-### Local-Only Configuration (Ollama)
+### Local-Only Configuration (Internal Inference Server)
+
+The internal inference server exposes an OpenAI-compatible API. Configure OpenCode to use it:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "internal": {
+      "name": "Internal",
+      "api": "openai",
+      "url": "http://inference.internal/v1"
+    }
+  },
+  "model": "internal/your-llm-model"
+}
+```
+
+OMO Slim agent model routing:
 
 ```json
 {
   "agents": {
-    "sisyphus": { "model": "ollama/qwen2.5-coder:32b" },
-    "prometheus": { "model": "ollama/qwen2.5-coder:32b" },
-    "oracle": { "model": "ollama/qwen2.5-coder:32b" },
-    "explorer": { "model": "ollama/qwen2.5-coder:7b" },
-    "librarian": { "model": "ollama/qwen2.5-coder:7b" },
-    "designer": { "model": "ollama/qwen2.5-coder:14b" },
-    "fixer": { "model": "ollama/qwen2.5-coder:14b" }
+    "orchestrator": { "model": "internal/your-llm-model" },
+    "oracle": { "model": "internal/your-llm-model" },
+    "explorer": { "model": "internal/your-fast-model" },
+    "librarian": { "model": "internal/your-fast-model" },
+    "designer": { "model": "internal/your-llm-model" },
+    "fixer": { "model": "internal/your-fast-model" }
   }
 }
 ```
 
-The OpenCode provider configuration (`opencode.json`):
-
-```json
-{
-  "provider": {
-    "ollama": {
-      "id": "ollama",
-      "name": "Ollama",
-      "api": "openai",
-      "url": "http://localhost:11434/v1"
-    }
-  },
-  "model": "ollama/qwen2.5-coder:32b"
-}
-```
-
-**Pre-download all models before going air-gapped:**
-
-```bash
-ollama pull qwen2.5-coder:32b
-ollama pull qwen2.5-coder:14b
-ollama pull qwen2.5-coder:7b
-ollama pull qwen3-embedding     # for Srclight
-```
+Replace `your-llm-model` and `your-fast-model` with the actual model IDs served by the internal inference server. Srclight embeddings use the same server at the same base URL with model `text-embedding-gte-multilingual-base`.
 
 ### Disable Cloud Providers
 
@@ -406,9 +400,9 @@ sha256sum -c checksums.txt
 | 3 | Pre-download ripgrep binary | Copy `~/.cache/oh-my-opencode-slim/bin/rg` |
 | 4 | Pre-download comment-checker binary | Copy from cache directory |
 | 5 | Download schema JSON | `curl -o oh-my-opencode-slim.schema.json https://raw.githubusercontent.com/alvinunreal/oh-my-opencode-slim/master/assets/oh-my-opencode-slim.schema.json` |
-| 6 | Pull Ollama models | `ollama pull qwen2.5-coder:32b` (and other sizes) |
+| 6 | Verify internal inference server | `curl http://inference.internal/v1/models` returns model list |
 | 7 | Compute checksums | `sha256sum` on all downloaded binaries |
-| 8 | Package everything | Tarball of npm package + cached binaries + Ollama models + schema |
+| 8 | Package everything | Tarball of npm package + cached binaries + schema |
 
 ### Post-Deployment (Air-Gapped Machine)
 
@@ -417,7 +411,7 @@ sha256sum -c checksums.txt
 | 1 | Install OMO Slim from tarball | `npm install -g ./oh-my-opencode-slim-*.tgz` |
 | 2 | Place cached binaries | `ls ~/.cache/oh-my-opencode-slim/bin/{sg,rg}` |
 | 3 | Verify binary checksums | `sha256sum -c checksums.txt` |
-| 4 | Configure local-only models | Set all agents to `ollama/*` in OMO Slim config |
+| 4 | Configure local-only models | Set all agents to `internal/*` in OMO Slim config, pointing to internal inference server |
 | 5 | Disable cloud providers | `"disabled_providers": ["anthropic", "openai", "google", "opencode"]` |
 | 6 | Disable internet MCPs | `"tools": { "websearch_*": false, "context7_*": false, "grep_app_*": false }` |
 | 7 | Set OpenCode env vars | `OPENCODE_DISABLE_MODELS_FETCH=1`, `OPENCODE_DISABLE_LSP_DOWNLOAD=1` |
@@ -435,7 +429,7 @@ sha256sum -c checksums.txt
 | Binary downloads lack hash verification | By design | Must manually verify post-transfer |
 | `disabled_mcps` is the only disable mechanism | By design | MCP disabling works; hook disabling does not |
 | Librarian agent loses primary capability | By design | No external docs without websearch/context7 |
-| Default models point to cloud providers | OpenAI/Kimi defaults | Must override all agent models to local (Ollama) |
+| Default models point to cloud providers | OpenAI/Kimi defaults | Must override all agent models to internal inference server |
 | Skills installer uses `npx` (downloads from GitHub) | By design | Install with `--skills=no` for air-gap |
 | No official air-gap deployment guide | Not documented | This document serves as the reference |
 | `scoringEngineVersion` config field | Placeholder only | No scoring engine implementation exists in codebase |
@@ -446,7 +440,7 @@ OMO Slim is viable for air-gapped deployment with the mitigations described abov
 
 1. **Optional features** (MCPs, auto-updates) — can be disabled
 2. **One-time downloads** (binaries) — can be pre-cached
-3. **Model inference** — can use local Ollama
+3. **Model inference** — uses internal inference server
 
 The primary risk is supply chain: the plugin downloads and executes unverified binaries. Pre-caching and checksum verification mitigate this.
 

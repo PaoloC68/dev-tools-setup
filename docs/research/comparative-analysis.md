@@ -164,16 +164,16 @@ The semantic layer enables natural-language code search — finding code by mean
 | Stars | ~17 (very new) |
 | Search | Hybrid (FTS5 trigram + semantic embeddings via RRF) |
 | Parsing | tree-sitter (7 languages) |
-| Embeddings | Ollama (qwen3-embedding default) |
+| Embeddings | Internal OpenAI-compatible server (`text-embedding-gte-multilingual-base`) |
 | Database | SQLite |
 | MCP Tools | 25 |
-| Air-gap | Yes (Ollama models pre-downloaded) |
+| Air-gap | Yes (internal inference server) |
 
 ### Alternatives
 
 | Tool | License | Hybrid Search | Embedding Support | C/C++ | Air-Gap | Maturity | MCP | Verdict |
 |------|---------|---------------|-------------------|-------|---------|----------|-----|---------|
-| **Srclight** | MIT | FTS5 + semantic (RRF) | Ollama (local) | Yes (tree-sitter) | Yes | Very new (17 stars) | Yes (native) | **Current choice** |
+| **Srclight** | MIT | FTS5 + semantic (RRF) | Internal server | Yes (tree-sitter) | Yes | Very new (17 stars) | Yes (native) | **Current choice** |
 | **Zoekt** | Apache-2.0 | Trigram only (no semantic) | No | Yes | Yes | Mature (Google-backed) | No | Best keyword search; no semantic |
 | **LanceDB** | Apache-2.0 | Vector + full-text | Any | Via embeddings | Yes | Growing | No (needs adapter) | Superior vector performance; no MCP |
 | **ChromaDB** | Apache-2.0 | Semantic only | Yes | Via embeddings | Yes | Mature | No (needs adapter) | No FTS; pure vector |

@@ -20,8 +20,8 @@ curl -fsSL https://opencode.ai/install | bash
 
 ### Platform-Specific
 ```bash
-# macOS/Linux with Homebrew
-brew install opencode-ai/tap/opencode
+# macOS/Linux with Homebrew (recommended — always up to date)
+brew install anomalyco/tap/opencode
 
 # Windows with Scoop
 scoop install opencode
@@ -45,14 +45,12 @@ Select your provider and enter API key. Recommended: OpenCode Zen (curated model
 
 ### Environment Variables
 ```bash
+export ANTHROPIC_API_KEY="your-api-key"
 export OPENAI_API_KEY="your-api-key"
-export OPENAI_API_BASE="https://api.openai.com/v1"
-
-# Or for local models (Ollama)
-export OLLAMA_HOST="http://localhost:11434"
+export GEMINI_API_KEY="your-api-key"
 ```
 
-### Configuration File (~/.opencode.json)
+### Configuration File (~/.config/opencode/opencode.json)
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
@@ -200,6 +198,7 @@ Updating...
 ### Adding Local MCP Servers
 ```json
 {
+  "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "serena": {
       "type": "local",
@@ -217,22 +216,21 @@ Updating...
 }
 ```
 
-> **Air-Gap Warning**: `npx -y` commands always download packages from the npm registry.
-> For air-gapped environments, pre-install all MCP server packages locally before disconnecting.
+> **Air-Gap Warning**: `uvx` with `git+https://` downloads at runtime.
+> For air-gapped environments, pre-install Serena via `pip install serena` and use the local binary path.
 
 ### Adding Remote MCP Servers
 ```json
 {
+  "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "sentry": {
       "type": "remote",
-      "url": "https://mcp.sentry.dev/mcp",
-      "enabled": true
+      "url": "https://mcp.sentry.dev/mcp"
     },
     "gh_grep": {
       "type": "remote",
-      "url": "https://mcp.grep.app",
-      "enabled": true
+      "url": "https://mcp.grep.app"
     }
   }
 }
@@ -241,10 +239,21 @@ Updating...
 ### Per-Agent MCP Configuration
 ```json
 {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "serena": {
+      "type": "local",
+      "command": ["uvx", "--from", "git+https://github.com/oraios/serena",
+                  "serena", "start-mcp-server", "--context", "ide-assistant", "--project", "."]
+    }
+  },
+  "tools": {
+    "serena_*": false
+  },
   "agent": {
     "reviewer": {
       "tools": {
-        "serena*": true
+        "serena_*": true
       }
     }
   }

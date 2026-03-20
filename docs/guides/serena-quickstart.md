@@ -73,23 +73,22 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-### Crush
+### OpenCode
 
-Add to `.crush.json` (project root) or `~/.config/crush/crush.json` (global):
+Add to `~/.opencode.json`:
 
 ```json
 {
-  "$schema": "https://charm.land/crush.json",
   "mcp": {
     "serena": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": [
-        "--from", "git+https://github.com/oraios/serena",
+      "type": "local",
+      "command": [
+        "uvx", "--from", "git+https://github.com/oraios/serena",
         "serena", "start-mcp-server",
         "--context", "ide-assistant",
         "--project", "."
-      ]
+      ],
+      "enabled": true
     }
   }
 }
@@ -101,14 +100,13 @@ Add to `.crush.json` (project root) or `~/.config/crush/crush.json` (global):
 {
   "mcp": {
     "serena": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": [
-        "--from", "git+https://github.com/oraios/serena",
+      "command": [
+        "uvx", "--from", "git+https://github.com/oraios/serena",
         "serena", "start-mcp-server",
         "--context", "ide-assistant",
         "--project", "/path/to/your/project"
-      ]
+      ],
+      "enabled": true
     }
   }
 }
@@ -119,10 +117,11 @@ Add to `.crush.json` (project root) or `~/.config/crush/crush.json` (global):
 ### Onboarding Workflow
 
 1. Install and start the Serena MCP server (see Installation above)
-2. Connect a client (Claude Code, Crush, Claude Desktop, Cursor)
+2. Connect a client (Claude Desktop, OpenCode, Cursor)
 3. Prompt: `Activate the project at /path/to/project`
 4. Serena analyzes structure, indexes symbols, builds dependency graph
 5. Creates `.serena/project.yml` and `.serena/memories/`
+6. Verify: dashboard at `http://localhost:24282/dashboard/`
 
 ### Configuration (.serena/project.yml)
 
@@ -409,8 +408,28 @@ Activate the project at /absolute/path/to/your/project
 - **Pre-index nightly** for large repos to avoid cold-start delays.
 - **Version control `.serena/project.yml`** for team consistency. Keep `.serena/memories/` in `.gitignore`.
 
+## Integration with Other Tools
+
+### Agno Framework
+
+```python
+from agno import Agent
+from serena import SerenaTools
+
+agent = Agent(tools=SerenaTools())
+```
+
+### Custom Framework
+
+```python
+from serena import Serena
+
+serena = Serena(project_path="/path/to/project")
+result = serena.find_symbol("my_function")
+```
+
 ## Next Steps
 
 - Read the [Architecture Overview](../architecture/overview.md)
-- Set up [Crush](./opencode-quickstart.md) for orchestration
-- Configure [Srclight](./srclight-quickstart.md) for semantic search
+- Set up [OpenCode](./opencode-quickstart.md) for orchestration
+- Configure [Local Embeddings](./srclight-setup.md) for semantic search

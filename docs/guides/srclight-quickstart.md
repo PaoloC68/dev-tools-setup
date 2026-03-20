@@ -10,14 +10,14 @@ Srclight combines three indexing strategies into a single hybrid search engine:
 
 1. **Tree-sitter parsing** extracts precise symbols (functions, classes, methods, interfaces, structs), builds call graph edges, and maps type hierarchies across 7 supported languages.
 2. **FTS5 trigram + porter stemmer** provides fast keyword search with fuzzy matching.
-3. **Semantic embeddings via Ollama** enable natural language queries against your codebase.
+3. **Semantic embeddings** via an OpenAI-compatible embedding endpoint enable natural language queries against your codebase.
 
 Search results merge keyword and semantic matches through **Reciprocal Rank Fusion (RRF)**, giving you the best of both approaches in a single query.
 
 ### Key Features
 
 - **Hybrid Search** combines FTS5 keyword matching with semantic embeddings via RRF
-- **100% Offline** when paired with Ollama for local embeddings
+- **100% Offline** when pointed at an internal embedding server
 - **25 MCP Tools** covering symbol search, relationship graphs, git change intelligence, semantic search, build system awareness, and document extraction
 - **Tree-sitter Symbol Extraction** for precise structural understanding
 - **Multi-repo Workspaces** via ATTACH across SQLite databases and UNION across schemas
@@ -44,52 +44,16 @@ Search results merge keyword and semantic matches through **Reciprocal Rank Fusi
 pip install srclight
 ```
 
-GPU acceleration for embeddings is handled by Ollama, not by Srclight itself. For optional CuPy-based acceleration of other operations:
-
-```bash
-pip install cupy-cuda12x  # Optional, for CUDA 12.x
-```
-
-### Install Ollama (Required for Embeddings)
-
-Ollama provides the local embedding models. Install it before indexing.
-
-```bash
-# macOS
-brew install ollama
-
-# Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Start the Ollama service
-ollama serve
-```
-
-### Pull Embedding Models
-
-```bash
-# Default: best local quality, needs ~6GB VRAM
-ollama pull qwen3-embedding
-
-# Alternative: lighter model, works on 8GB VRAM systems
-ollama pull nomic-embed-text
-```
-
-For air-gapped deployments, pull models **before** disconnecting from the network. Ollama stores models locally and serves them without any network access afterward.
-
 ### Air-gapped Preparation Checklist
 
 ```bash
 # 1. Install Srclight
 pip install srclight
 
-# 2. Install Ollama and pull model while online
-ollama pull qwen3-embedding
+# 2. Verify the internal embedding server is reachable
+curl http://inference.internal/v1/models
 
-# 3. Verify model is available locally
-ollama list
-
-# 4. Disconnect from network. Everything runs offline from here.
+# 3. Disconnect from external network. Everything runs via the internal server.
 ```
 
 ## Configuration
@@ -103,9 +67,9 @@ database:
   path: .srclight/index.db
 
 embeddings:
-  provider: ollama
-  model: qwen3-embedding       # Default: best quality
-  # model: nomic-embed-text    # Alternative: lighter, 8GB VRAM
+  provider: openai-compatible
+  base_url: http://inference.internal/v1
+  model: text-embedding-gte-multilingual-base
 
 indexing:
   batch_size: 100
@@ -118,15 +82,13 @@ indexing:
     - ".git/"
 ```
 
+Replace `http://inference.internal/v1` with the actual base URL of your internal inference server.
+
 ### Embedding Model Options
 
-| Model | Provider | VRAM | Quality | Offline |
-|-------|----------|------|---------|---------|
-| `qwen3-embedding` | Ollama | ~6GB | Best local | Yes |
-| `nomic-embed-text` | Ollama | ~4GB | Good | Yes |
-| `voyage-code-3` | Voyage AI | N/A | Best overall | No (API key required) |
-
-For air-gapped deployments, use `qwen3-embedding` or `nomic-embed-text`. The `voyage-code-3` option exists for environments with network access but is **not recommended** for air-gapped deployments.
+| Model | Provider | Offline | Notes |
+|-------|----------|---------|-------|
+| `text-embedding-gte-multilingual-base` | Internal server | Yes | Default for this deployment |
 
 ## Quick Start Workflow
 
@@ -140,7 +102,7 @@ srclight index /path/to/project
 srclight index /path/to/project --workspace myproject
 ```
 
-Tree-sitter parses each file, extracts symbols and relationships, then Ollama generates embeddings. The resulting index lands in `.srclight/index.db`.
+Tree-sitter parses each file, extracts symbols and relationships, then the embedding server generates vectors. The resulting index lands in `.srclight/index.db`.
 
 ### Step 2: Start the MCP Server
 
@@ -327,16 +289,14 @@ Srclight exposes 25 tools through the MCP protocol. Key categories:
 | Index speed | ~1000 files/minute (CPU) |
 | Search latency | <100ms (hybrid search) |
 | Index size | ~1KB/file average |
-| Embedding model | qwen3-embedding via Ollama |
-| Embedding latency | ~50-200ms per MCP call |
+| Embedding latency | ~50-200ms per MCP call (network-dependent) |
 
 ### Optimization Tips
 
-- Ollama with GPU gives 5-10x faster embedding generation
 - Exclude test files and generated code for a smaller index
 - Incremental updates for active development (only re-indexes changed files)
 - FTS5 keyword search alone is sub-millisecond; embedding lookup adds the latency
-- Multi-repo workspaces share a single Ollama instance
+- Multi-repo workspaces share a single embedding server endpoint
 
 ## Integration with Serena
 
@@ -367,27 +327,23 @@ References: 8 locations across 4 files
 
 ## Troubleshooting
 
-### "Ollama connection refused"
+### "Embedding server connection refused"
 
 ```bash
-# Verify Ollama is running
-ollama list
+# Verify the internal server is reachable
+curl http://inference.internal/v1/models
 
-# Start the service if needed
-ollama serve
-
-# Check the model is pulled
-ollama pull qwen3-embedding
+# Check Srclight config points to the correct base_url
+cat .srclight/config.yml
 ```
 
 ### "Model not found"
 
 ```bash
-# List available models
-ollama list
+# List models available on the internal server
+curl http://inference.internal/v1/models
 
-# Pull the required model
-ollama pull qwen3-embedding
+# Verify the model name in .srclight/config.yml matches exactly
 ```
 
 ### "Index not found"
@@ -399,15 +355,13 @@ srclight index /path/to/project
 
 ### "Slow indexing"
 
-- Verify Ollama has GPU access for faster embeddings
-- Reduce batch_size in config
+- Reduce `batch_size` in config to lower concurrent embedding requests
 - Exclude large directories (node_modules, build artifacts)
-- Check `ollama ps` to confirm model is loaded in memory
+- Check network latency to the internal embedding server
 
 ### "Memory issues"
 
-- Switch to `nomic-embed-text` (lighter model, ~4GB VRAM)
-- Reduce batch_size in config
+- Reduce `batch_size` in config
 - Exclude large files (binaries, build outputs)
 
 ## Next Steps

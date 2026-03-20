@@ -1,6 +1,6 @@
 # Srclight Setup Guide
 
-Srclight is the **semantic layer** of the air-gapped AI coding architecture. It combines SQLite FTS5 keyword search, tree-sitter symbol extraction, and Ollama-powered embeddings into a hybrid search engine for code.
+Srclight is the **semantic layer** of the air-gapped AI coding architecture. It combines SQLite FTS5 keyword search, tree-sitter symbol extraction, and embeddings via an internal OpenAI-compatible server into a hybrid search engine for code.
 
 ## Overview
 
@@ -12,23 +12,7 @@ Srclight indexes your codebase using three complementary strategies: tree-sitter
 pip install srclight
 ```
 
-Ollama is required for local embeddings:
-
-```bash
-# macOS
-brew install ollama
-
-# Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Pull the default embedding model (~6GB VRAM)
-ollama pull qwen3-embedding
-
-# Or the lighter alternative (~4GB VRAM)
-ollama pull nomic-embed-text
-```
-
-For air-gapped setups, pull the Ollama model **before** disconnecting from the network. Once pulled, Ollama serves models entirely offline.
+Embeddings are provided by the internal inference server. No local model installation is required — Srclight calls the server's OpenAI-compatible `/v1/embeddings` endpoint at index time and query time.
 
 ## Configuration
 
@@ -39,9 +23,9 @@ database:
   path: .srclight/index.db
 
 embeddings:
-  provider: ollama
-  model: qwen3-embedding       # Default: best local quality
-  # model: nomic-embed-text    # Alternative: lighter, 8GB VRAM
+  provider: openai-compatible
+  base_url: http://inference.internal/v1
+  model: text-embedding-gte-multilingual-base
 
 indexing:
   batch_size: 100
@@ -52,6 +36,8 @@ indexing:
     - "__pycache__/"
     - ".git/"
 ```
+
+Replace `http://inference.internal/v1` with the actual base URL of your internal inference server.
 
 ## Usage
 
@@ -113,10 +99,9 @@ The 25 tools cover symbol search, relationship graphs (call graphs, type hierarc
 | Embedding latency | ~50-200ms per MCP call |
 | Index size | ~1KB/file average |
 
-- Ollama with GPU gives 5-10x faster embedding generation
 - Incremental updates only re-index changed files
-- FTS5 keyword search alone is sub-millisecond
-- Switch to `nomic-embed-text` on memory-constrained systems
+- FTS5 keyword search alone is sub-millisecond; embedding lookup adds network latency
+- Reduce `batch_size` if the embedding server is under load
 
 ## Next Steps
 

@@ -9,6 +9,9 @@ Memora stores cross-session context, research findings, and architectural decisi
 > **Air-Gap Warning**: Memora includes optional cloud sync features (S3, R2, Cloudflare D1).
 > These MUST remain disabled for air-gapped deployments. See [Security Configuration](#security-configuration) below.
 
+> **Note**: For installation and first-time setup, see the [Memora Quickstart](./memora-quickstart.md).
+> This document covers configuration reference only.
+
 ## Directory Structure
 
 ```
@@ -45,31 +48,29 @@ lsp:
   compile_commands: ./compile_commands.json
 ```
 
-### Memora Configuration
+### Memora MCP Configuration (.mcp.json)
 
-```yaml
-# Database settings (local-only for air-gapped)
-database:
-  path: .memora/memories.db
-  auto_commit: true
+Add to `.mcp.json` in your project root:
 
-# Embedding settings
-embeddings:
-  provider: local            # Use local embeddings only
-  model: sentence-transformers  # or ollama
-  device: cpu
-  cache: .memora/embeddings/
-
-# Context settings
-context:
-  max_sessions: 50
-  session_timeout_days: 30
-
-# Search
-search:
-  hybrid: true              # FTS5 keyword + semantic
-  fusion: reciprocal_rank   # Reciprocal Rank Fusion
+```json
+{
+  "mcpServers": {
+    "memora": {
+      "command": "memora-server",
+      "args": [],
+      "env": {
+        "MEMORA_DB_PATH": "~/.local/share/memora/memories.db",
+        "MEMORA_EMBEDDING_MODEL": "sentence-transformers",
+        "MEMORA_ALLOW_ANY_TAG": "1",
+        "MEMORA_GRAPH_PORT": "8765"
+      }
+    }
+  }
+}
 ```
+
+> **Air-Gap Note**: `MEMORA_EMBEDDING_MODEL=sentence-transformers` is required. The default
+> (`openai`) makes network calls to the OpenAI API.
 
 ### Security Configuration
 
@@ -120,13 +121,21 @@ export MEMORA_ALLOW_ANY_TAG=1        # Optional: allow custom tags
 
 | Tool | Purpose |
 |------|---------|
-| `add_memories` | Store new memories with metadata and tags |
-| `search_memory` | Hybrid search (keyword + semantic) across memories |
-| `list_memories` | List stored memories with filters |
-| `delete_memory` | Remove specific memories |
+| `memory_create` | Store a new memory with content, tags, and section |
+| `memory_search` | Hybrid search (FTS + semantic) across memories |
+| `memory_list` | List memories with tag/section/date filters |
+| `memory_update` | Update memory content or metadata |
+| `memory_delete` | Remove a specific memory |
+| `memory_get` | Retrieve a memory by ID |
+| `memory_create_todo` | Create a TODO with status and priority |
+| `memory_create_issue` | Create an issue with severity and component |
+| `memory_link` | Create typed edge between two memories |
+| `memory_find_duplicates` | Find similar memories for deduplication |
+| `memory_merge` | Merge two memories |
+| `memory_insights` | Activity summary, stale detection, consolidation suggestions |
+| `memory_rebuild_embeddings` | Rebuild all embeddings after model change |
 
 ## Integration Modes
-
 
 Memora supports three integration patterns:
 
@@ -135,7 +144,13 @@ Memora supports three integration patterns:
 Standalone MCP server for 100% offline deployments:
 
 ```bash
-memora serve --port 3001
+memora-server
+
+# With knowledge graph visualization
+memora-server --graph-port 8765
+
+# Headless (no graph server)
+memora-server --no-graph
 ```
 
 ### 2. Agno Agent Mode
@@ -158,20 +173,21 @@ ctx = ContextManager()
 
 ## Usage Examples
 
-### Writing Memory (Serena)
+### Storing a Memory
 
-```python
-write_memory(
-    content="# Key Insight\n\nThis module handles authentication via JWT tokens.",
-    category="architecture"
+```
+memory_create(
+    content="All database access goes through the repository layer. Direct ORM calls from handlers are forbidden.",
+    tags=["architecture", "database"],
+    section="decisions"
 )
 ```
 
-### Querying Context (Memora)
+### Searching Context
 
-```python
-search_memory(
-    query="authentication flow",
+```
+memory_search(
+    query="database access patterns",
     limit=5
 )
 ```
@@ -195,6 +211,7 @@ search_memory(
 
 ## Related Documents
 
+- [Memora Quickstart](./memora-quickstart.md)
 - [Architecture Overview](../architecture/overview.md)
 - [Security Assessment](../research/security-assessment.md)
 - [Serena Quickstart](./serena-quickstart.md)

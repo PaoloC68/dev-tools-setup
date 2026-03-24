@@ -164,7 +164,7 @@ The semantic layer enables natural-language code search — finding code by mean
 | Stars | ~17 (very new) |
 | Search | Hybrid (FTS5 trigram + semantic embeddings via RRF) |
 | Parsing | tree-sitter (11 languages) |
-| Embeddings | Internal OpenAI-compatible server (`text-embedding-gte-multilingual-base`) |
+| Embeddings | Internal OpenAI-compatible server (`qwen3-embedding-8b`) |
 | Database | SQLite |
 | MCP Tools | 29 |
 | Air-gap | Yes (internal inference server) |

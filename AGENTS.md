@@ -117,7 +117,7 @@ When editing docs, maintain consistency with these architectural facts:
 | Memora | local SQLite (cloud sync disabled) | Historical + semantic | "What did we decide?" |
 
 Key technical details to preserve:
-- Srclight embeddings: internal OpenAI-compatible inference server, model `text-embedding-gte-multilingual-base`
+- Srclight embeddings: internal OpenAI-compatible inference server, model `qwen3-embedding-8b`
 - Srclight search: Hybrid — three FTS5 indexes (names, trigram, docstrings) + semantic via Reciprocal Rank Fusion (RRF)
 - Srclight parsing: tree-sitter (11 languages: Python, C, C++, C#, JavaScript, TypeScript, PHP, Dart, Swift, Kotlin, Java, Go)
 - Srclight has no config file — configuration is via CLI flags (`--embed`, `--embed-model`) at index time
@@ -163,7 +163,7 @@ This is an air-gapped stack. When editing docs:
 
 - Don't reference cloud services or external APIs — this is an air-gapped stack
 - Don't assume network access in any setup instructions
-- Don't use `qwen3-embedding` or `all-MiniLM-L6-v2` as the Srclight embedding model — the correct model is `text-embedding-gte-multilingual-base` via the internal inference server
+- Don't use `qwen3-embedding` or `all-MiniLM-L6-v2` as the Srclight embedding model — the correct model is `qwen3-embedding-8b` via the internal inference server
 - Don't recommend `npx -y` for air-gapped setups — it always downloads from npm
 - Don't omit air-gap warnings when documenting cloud-capable features (e.g., Memora sync)
 - Don't add unnecessary abstraction layers to documentation structure

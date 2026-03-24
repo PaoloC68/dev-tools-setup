@@ -114,7 +114,7 @@ OMO Slim implements a hub-and-spoke architecture where the Sisyphus agent acts a
 - **Parsing**: tree-sitter (precise symbol extraction: functions, classes, methods, interfaces, structs)
 - **Languages**: Python, C, C++, C#, JavaScript, TypeScript, PHP, Dart, Swift, Kotlin, Java, Go (11 total)
 - **Keyword Search**: SQLite FTS5 — three indexes (names, trigram, docstrings)
-- **Semantic Search**: Embeddings via internal OpenAI-compatible inference server (`text-embedding-gte-multilingual-base`)
+- **Semantic Search**: Embeddings via internal OpenAI-compatible inference server (`qwen3-embedding-8b`)
 - **Hybrid Search**: Reciprocal Rank Fusion combining FTS5 + semantic results
 - **Database**: SQLite (`.srclight/index.db`) — no config file, all options via CLI flags
 - **Tools**: 29 MCP tools covering symbol search, relationship graphs, git change intelligence, semantic search, build system awareness, and document extraction

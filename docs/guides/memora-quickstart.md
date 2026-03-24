@@ -320,7 +320,7 @@ setting `OPENAI_BASE_URL` and `OPENAI_API_KEY`:
     "MEMORA_EMBEDDING_MODEL": "openai",
     "OPENAI_BASE_URL": "http://inference.internal/v1",
     "OPENAI_API_KEY": "sk-your-key",
-    "OPENAI_EMBEDDING_MODEL": "text-embedding-gte-multilingual-base"
+    "OPENAI_EMBEDDING_MODEL": "qwen3-embedding-8b"
   }
 }
 ```

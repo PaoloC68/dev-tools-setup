@@ -148,7 +148,7 @@ opencode
 ## Key Technical Details
 
 - **Orchestration**: Oh-My-OpenCode-Slim plugin with 7 agents, model routing, background tasks
-- **Embeddings**: Internal OpenAI-compatible server (`text-embedding-gte-multilingual-base`)
+- **Embeddings**: Internal OpenAI-compatible server (`qwen3-embedding-8b`)
 - **Search**: Hybrid — FTS5 trigram + semantic via Reciprocal Rank Fusion
 - **Parsing**: tree-sitter (C, C++, Python, TypeScript, JavaScript, Rust, Go)
 - **C/C++ LSP**: clangd (recommended) or ccls (large codebases)

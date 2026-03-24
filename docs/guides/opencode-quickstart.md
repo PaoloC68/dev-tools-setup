@@ -112,7 +112,7 @@ Place in project root, or at `~/.config/opencode/opencode.json` for global setti
 > correct backend. The same values must be set at initial index time:
 > ```bash
 > OPENAI_API_KEY=your-key OPENAI_BASE_URL=http://inference.internal \
->   srclight index --embed text-embedding-gte-multilingual-base
+>   srclight index --embed qwen3-embedding-8b
 > ```
 
 > **Air-Gap Note**: Replace `git+https://` with locally installed packages.

@@ -37,7 +37,7 @@ srclight index
 # Index with embeddings via internal server
 # Model names starting with "text-embedding" are auto-detected as OpenAI-compatible:
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
-  --embed openai:text-embedding-gte-multilingual-base
+  --embed openai:qwen3-embedding-8b
 
 # For other model names, use the "openai:" prefix to force OpenAI-compatible provider:
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
@@ -73,17 +73,17 @@ serving the same model over the same OpenAI-compatible API.
 pip install "infinity-emb[all]"
 
 # Pre-download model before going air-gapped
-python -c "from huggingface_hub import snapshot_download; snapshot_download('Alibaba-NLP/gte-multilingual-base')"
+python -c "from huggingface_hub import snapshot_download; snapshot_download('Qwen/Qwen3-Embedding-8B')"
 export HF_HUB_OFFLINE=1
 
 # Run (exposes http://localhost:7997/v1/embeddings)
-infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 7997
+infinity_emb v2 --model-name-or-path Qwen/Qwen3-Embedding-8B --port 7997
 ```
 
 Index using the local server:
 
 ```bash
-OPENAI_BASE_URL=http://localhost:7997 srclight index --embed openai:text-embedding-gte-multilingual-base
+OPENAI_BASE_URL=http://localhost:7997 srclight index --embed openai:qwen3-embedding-8b
 # No OPENAI_API_KEY needed for local infinity-emb
 ```
 
@@ -94,7 +94,7 @@ OPENAI_BASE_URL=http://localhost:7997 srclight index --embed openai:text-embeddi
 ```bash
 # Index
 srclight index
-OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index --embed openai:text-embedding-gte-multilingual-base
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index --embed openai:qwen3-embedding-8b
 
 # Search
 srclight search "authentication flow"
@@ -119,7 +119,7 @@ srclight workspace add /path/to/repo2 -w myworkspace
 
 # Index all repos
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
-  srclight workspace index -w myworkspace --embed openai:text-embedding-gte-multilingual-base
+  srclight workspace index -w myworkspace --embed openai:qwen3-embedding-8b
 
 # Start MCP server (SSE — persistent, port 8742)
 srclight serve --workspace myworkspace &

@@ -259,7 +259,7 @@ OMO Slim agent model routing:
 }
 ```
 
-Replace `your-llm-model` and `your-fast-model` with the actual model IDs served by the internal inference server. Srclight embeddings use the same server at the same base URL with model `text-embedding-gte-multilingual-base`.
+Replace `your-llm-model` and `your-fast-model` with the actual model IDs served by the internal inference server. Srclight embeddings use the same server at the same base URL with model `qwen3-embedding-8b`.
 
 ### Disable Cloud Providers
 

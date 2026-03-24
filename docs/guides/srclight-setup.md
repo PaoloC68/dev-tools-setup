@@ -14,8 +14,12 @@ exposes 29 MCP tools and supports 11 languages.
 ## Installation
 
 ```bash
-pip install srclight
+pip install srclight            # install latest (0.15.1+)
+pip install --upgrade srclight  # upgrade if already installed
 ```
+
+> **Version requirement**: OpenAI-compatible embedding endpoints require v0.11.0+.
+> Check with `pip show srclight`.
 
 Embeddings are provided by the internal inference server. No local model installation is required —
 Srclight calls the server's OpenAI-compatible `/v1/embeddings` endpoint at index time and query time.

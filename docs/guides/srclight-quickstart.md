@@ -37,8 +37,12 @@ Python, C, C++, C#, JavaScript, TypeScript, PHP, Dart, Swift, Kotlin, Java, Go
 ## Installation
 
 ```bash
-pip install srclight
+pip install srclight            # install latest (0.15.1+)
+pip install --upgrade srclight  # upgrade if already installed
 ```
+
+> **Version requirement**: OpenAI-compatible embedding support requires v0.11.0+. The current
+> release is v0.15.1. Check your version with `pip show srclight`.
 
 Optional extras:
 

@@ -234,23 +234,6 @@ Updating...
 > **Air-Gap Warning**: `uvx` with `git+https://` downloads at runtime.
 > For air-gapped environments, pre-install Serena via `pip install serena` and use the local binary path.
 
-### Adding Remote MCP Servers
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "sentry": {
-      "type": "remote",
-      "url": "https://mcp.sentry.dev/mcp"
-    },
-    "gh_grep": {
-      "type": "remote",
-      "url": "https://mcp.grep.app"
-    }
-  }
-}
-```
-
 ### Per-Agent MCP Configuration
 ```json
 {

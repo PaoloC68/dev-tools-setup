@@ -2,46 +2,50 @@
 
 ## What is Srclight?
 
-**Srclight** is the **semantic layer** of the air-gapped AI coding architecture. Deep code indexing for AI agents, built on SQLite FTS5, tree-sitter, embeddings, and the Model Context Protocol (MCP).
+**Srclight** is the **semantic layer** of the air-gapped AI coding architecture. Deep code indexing
+for AI agents, built on SQLite FTS5, tree-sitter, embeddings, and the Model Context Protocol (MCP).
 
 ### Core Architecture
 
-Srclight combines three indexing strategies into a single hybrid search engine:
+Srclight combines four indexing strategies into a single hybrid search engine:
 
-1. **Tree-sitter parsing** extracts precise symbols (functions, classes, methods, interfaces, structs), builds call graph edges, and maps type hierarchies across 7 supported languages.
-2. **FTS5 trigram + porter stemmer** provides fast keyword search with fuzzy matching.
-3. **Semantic embeddings** via an OpenAI-compatible embedding endpoint enable natural language queries against your codebase.
+1. **Tree-sitter parsing** extracts precise symbols (functions, classes, methods, interfaces, structs),
+   builds call graph edges, and maps type hierarchies across 11 supported languages.
+2. **FTS5 names index** — code-aware tokenization splitting `camelCase` and `::` operators.
+3. **FTS5 trigram index** — substring matching across all source code.
+4. **FTS5 docs index** — Porter stemming for natural language in docstrings.
+5. **Semantic embeddings** — optional, via an OpenAI-compatible endpoint for concept-level queries.
 
-Search results merge keyword and semantic matches through **Reciprocal Rank Fusion (RRF)**, giving you the best of both approaches in a single query.
+Search results merge keyword and semantic matches through **Reciprocal Rank Fusion (RRF)**.
 
 ### Key Features
 
-- **Hybrid Search** combines FTS5 keyword matching with semantic embeddings via RRF
-- **100% Offline** when pointed at an internal embedding server
-- **25 MCP Tools** covering symbol search, relationship graphs, git change intelligence, semantic search, build system awareness, and document extraction
-- **Tree-sitter Symbol Extraction** for precise structural understanding
-- **Multi-repo Workspaces** via ATTACH across SQLite databases and UNION across schemas
-- **SQLite Backend** for lightweight, fast, embedded storage
-- **7 Language Support** via tree-sitter grammars
+- **Hybrid Search** — FTS5 keyword + semantic embeddings via RRF
+- **29 MCP Tools** — symbol search, relationship graphs, git intelligence, semantic search, build system awareness
+- **Tree-sitter Symbol Extraction** — 11 languages, precise structural understanding
+- **Relationship Graph** — callers, callees, blast radius, inheritance, test discovery
+- **Git Change Intelligence** — blame, hotspots, WIP, commit history per symbol
+- **Multi-repo Workspaces** — ATTACH across SQLite databases, UNION across schemas
+- **Incremental Indexing** — content-hash detection, only re-indexes changed files
+- **Auto-reindex** — git post-commit/post-checkout hooks
+- **100% Offline** — single SQLite file per repo, no Docker, no cloud APIs
 
 ### Supported Languages
 
-| Language | Tree-sitter Grammar | Symbol Types |
-|----------|---------------------|--------------|
-| C | tree-sitter-c | functions, structs, enums, typedefs |
-| C++ | tree-sitter-cpp | classes, methods, functions, structs, namespaces |
-| Python | tree-sitter-python | classes, functions, methods, decorators |
-| TypeScript | tree-sitter-typescript | classes, interfaces, functions, types |
-| JavaScript | tree-sitter-javascript | classes, functions, methods |
-| Rust | tree-sitter-rust | structs, enums, traits, functions, impls |
-| Go | tree-sitter-go | structs, interfaces, functions, methods |
+Python, C, C++, C#, JavaScript, TypeScript, PHP, Dart, Swift, Kotlin, Java, Go
 
 ## Installation
 
-### Quick Install
-
 ```bash
 pip install srclight
+```
+
+Optional extras:
+
+```bash
+pip install 'srclight[docs,pdf]'   # PDF, DOCX, XLSX, HTML, image extraction
+pip install 'srclight[gpu]'         # GPU-accelerated vector search (CUDA 12.x)
+pip install 'srclight[all]'         # Everything
 ```
 
 ### Air-gapped Preparation Checklist
@@ -53,362 +57,336 @@ pip install srclight
 # 2. Verify the internal embedding server is reachable
 curl http://inference.internal/v1/models
 
-# 3. Disconnect from external network. Everything runs via the internal server.
+# 3. Disconnect from external network. Indexing and search run via the internal server.
 ```
 
 ## Configuration
 
-Srclight creates its configuration automatically on first run. The config lives in `.srclight/` at your project root.
+**Srclight has no config file.** All configuration is via CLI flags at index time. The only
+thing written to disk is `.srclight/index.db` (the SQLite database) plus optional embedding
+sidecars (`.npy` files).
 
-### Configuration Reference (.srclight/config.yml)
-
-```yaml
-database:
-  path: .srclight/index.db
-
-embeddings:
-  provider: openai-compatible
-  base_url: http://inference.internal/v1
-  model: text-embedding-gte-multilingual-base
-  api_key: ${INFERENCE_API_KEY}   # LiteLLM or internal server key
-
-indexing:
-  batch_size: 100
-  max_file_size: 1048576        # 1MB
-  exclude:
-    - "*.min.js"
-    - "*.bundle.js"
-    - "__pycache__/"
-    - "node_modules/"
-    - ".git/"
-```
-
-Replace `http://inference.internal/v1` with the actual base URL of your internal inference server.
-
-### Embedding Model Options
-
-| Model | Provider | Offline | Notes |
-|-------|----------|---------|-------|
-| `text-embedding-gte-multilingual-base` | Internal server | Yes | Default for this deployment |
-
-### Local Fallback: infinity-emb
-
-If the internal inference server is unavailable (e.g., standalone workstation, offline development),
-`infinity-emb` provides an identical OpenAI-compatible embedding server that runs entirely on CPU.
-It supports `text-embedding-gte-multilingual-base` natively, so the Srclight config does not change —
-only the `base_url` differs.
-
-**Install:**
-
-```bash
-pip install "infinity-emb[all]"
-```
-
-**Run:**
-
-```bash
-infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 7997
-```
-
-> **Air-Gap Note**: Download the model before disconnecting. `infinity-emb` caches it in
-> `~/.cache/huggingface/`. Pre-download with:
-> ```bash
-> python -c "from huggingface_hub import snapshot_download; snapshot_download('Alibaba-NLP/gte-multilingual-base')"
-> export HF_HUB_OFFLINE=1  # prevent any network access after download
-> ```
-
-**Srclight config when using the local fallback:**
-
-```yaml
-embeddings:
-  provider: openai-compatible
-  base_url: http://localhost:7997/v1
-  model: text-embedding-gte-multilingual-base
-  # api_key not required for local infinity-emb
-```
-
-**Comparison of embedding backends:**
-
-| Backend | Install | Memory | HTTP API | Air-Gap | Notes |
-|---------|---------|--------|----------|---------|-------|
-| Internal server | None | N/A | Yes | Yes (internal network) | Default |
-| `infinity-emb` | `pip install infinity-emb[all]` | ~600MB | Yes (OpenAI-compatible) | Yes (after model download) | Best local fallback |
-| `sentence-transformers` | `pip install sentence-transformers` | ~300MB | No (Python only) | Yes (after model download) | Direct Python, no HTTP server |
-| `fastembed` | `pip install fastembed` | ~200MB | No (Python only) | Yes (after model download) | Lightest footprint |
+> `srclight index` automatically adds `.srclight/` to your `.gitignore`. The database and
+> embedding files should never be committed.
 
 ## Quick Start Workflow
 
 ### Step 1: Index Your Project
 
 ```bash
-# Index entire project
-srclight index /path/to/project
+# Index current directory (keyword search only)
+cd /path/to/project
+srclight index
 
-# Index with a named workspace (for multi-repo setups)
-srclight index /path/to/project --workspace myproject
+# Index with embeddings via internal OpenAI-compatible server
+INFERENCE_API_KEY=sk-xxx srclight index \
+  --embed http://inference.internal/v1 \
+  --embed-model text-embedding-gte-multilingual-base
 ```
 
-Tree-sitter parses each file, extracts symbols and relationships, then the embedding server generates vectors. The resulting index lands in `.srclight/index.db`.
+Tree-sitter parses each file, extracts symbols and relationships, then the embedding server
+generates vectors (if `--embed` is specified). Everything lands in `.srclight/index.db`.
 
 ### Step 2: Start the MCP Server
 
+Single repo (stdio — one server per session):
+
 ```bash
-# Serve as MCP server for OpenCode integration
-srclight serve --workspace myproject
+srclight serve
 ```
 
-This exposes all 25 MCP tools to the orchestration layer.
+For OpenCode / Claude Code integration:
+
+```bash
+claude mcp add srclight -- srclight serve
+```
+
+Workspace mode (SSE — persistent, recommended for multi-repo):
+
+```bash
+srclight serve --workspace myworkspace &
+claude mcp add --transport sse srclight http://127.0.0.1:8742/sse
+```
 
 ### Step 3: Search
 
 ```bash
-# Hybrid search (keyword + semantic, merged via RRF)
-srclight search "authentication flow"
+# Keyword search
+srclight search "authentication"
 
-# Filter by language
-srclight search "JWT validation" --lang python
-
-# Symbol-specific search
-srclight search "parseJson" --type function
+# Symbol-specific
+srclight search --kind function "parseJson"
 ```
 
 ### Step 4: Incremental Updates
 
-```bash
-# After code changes, update only modified files
-srclight update --incremental
+Re-running `srclight index` is incremental by default — only re-indexes files whose
+content hash changed:
 
-# Full reindex when needed
-srclight index --rebuild
+```bash
+srclight index
+```
+
+Or install git hooks to keep the index fresh automatically:
+
+```bash
+srclight hook install
+```
+
+## Embedding Configuration
+
+Embeddings are optional. Without `--embed`, you get keyword-only search (FTS5). With `--embed`,
+you get hybrid search (FTS5 + semantic via RRF).
+
+### Internal Server (Default for This Deployment)
+
+```bash
+INFERENCE_API_KEY=sk-xxx srclight index \
+  --embed http://inference.internal/v1 \
+  --embed-model text-embedding-gte-multilingual-base
+```
+
+### Local Fallback: infinity-emb
+
+If the internal server is unavailable, `infinity-emb` provides an identical OpenAI-compatible
+embedding server running entirely on CPU.
+
+**Install and run:**
+
+```bash
+pip install "infinity-emb[all]"
+
+# Pre-download the model before going air-gapped
+python -c "from huggingface_hub import snapshot_download; snapshot_download('Alibaba-NLP/gte-multilingual-base')"
+export HF_HUB_OFFLINE=1
+
+# Run on port 7997
+infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 7997
+```
+
+**Index using the local server:**
+
+```bash
+srclight index \
+  --embed http://localhost:7997/v1 \
+  --embed-model text-embedding-gte-multilingual-base
+# No API key needed for local infinity-emb
+```
+
+### Embedding Backend Comparison
+
+| Backend | Install | Memory | HTTP API | Air-Gap |
+|---------|---------|--------|----------|---------|
+| Internal server | None | N/A | Yes (OpenAI-compatible) | Yes (internal network) |
+| `infinity-emb` | `pip install infinity-emb[all]` | ~600MB | Yes (OpenAI-compatible) | Yes (after model download) |
+| `sentence-transformers` | `pip install sentence-transformers` | ~300MB | No (Python only) | Yes (after model download) |
+| `fastembed` | `pip install fastembed` | ~200MB | No (Python only) | Yes (after model download) |
+
+## Multi-Repo Workspaces
+
+```bash
+# Create a workspace
+srclight workspace init myworkspace
+
+# Add repos
+srclight workspace add /path/to/repo1 -w myworkspace
+srclight workspace add /path/to/repo2 -w myworkspace
+
+# Index all repos with embeddings
+srclight workspace index -w myworkspace \
+  --embed http://inference.internal/v1 \
+  --embed-model text-embedding-gte-multilingual-base
+
+# Start MCP server in workspace mode
+srclight serve --workspace myworkspace
 ```
 
 ## Use Cases
 
 ### Use Case 1: Finding Code by Description
 
-**Scenario**: You know what you want but not where it is.
-
 ```
 You: Where do we handle JWT token validation?
 
-Srclight (hybrid search):
-Found 5 matches (keyword + semantic fusion):
+→ srclight: hybrid_search("JWT token validation")
 
-1. src/auth/jwt.py:22 - validate_token()
-   Score: 0.92
-   Context: Validates JWT token signature and expiration
-
-2. src/middleware/auth.py:15 - auth_middleware()
-   Score: 0.87
-   Context: Extracts and validates Bearer token
-
-3. src/services/session.py:45 - check_session_valid()
-   Score: 0.78
-   Context: Validates session against token store
+Found 5 matches:
+1. src/auth/jwt.py:22 - validate_token()       score: 0.92
+2. src/middleware/auth.py:15 - auth_middleware() score: 0.87
+3. src/services/session.py:45 - check_session_valid() score: 0.78
 ```
 
-### Use Case 2: Finding Similar Code
-
-**Scenario**: You have a code snippet and want to find similar patterns.
+### Use Case 2: Blast Radius Analysis
 
 ```
-You: Find all code similar to this function signature
+You: What breaks if I change validate_token?
 
-Srclight:
-Found 12 similar functions:
+→ srclight: get_dependents("validate_token", transitive=true)
 
-1. src/api/handlers/user.py:18 - create_user()
-2. src/api/handlers/auth.py:22 - create_token()
-3. src/services/cache.py:31 - create_entry()
-...
-
-Pattern: "create_*" functions returning result objects
+Direct callers: 4 symbols
+Transitive dependents: 23 symbols across 8 files
 ```
 
-### Use Case 3: Semantic Exploration
-
-**Scenario**: Understand "how" something works across the codebase.
+### Use Case 3: Git Intelligence
 
 ```
-You: How does our caching work?
+You: What changed recently in auth?
 
-Srclight:
-Caching-related code (12 files):
+→ srclight: recent_changes(10)
+→ srclight: git_hotspots(5)
 
-Implementation patterns:
-- Redis cache: src/cache/redis.py
-- Memory cache: src/cache/memory.py
-- Cache decorator: src/utils/cache.py
-
-Usage patterns:
-- @cached decorator for function results
-- Manual cache.get()/set() calls
+Most changed files (last 30 days):
+1. src/auth/jwt.py — 14 commits (bug magnet)
+2. src/middleware/auth.py — 9 commits
 ```
 
-### Use Case 4: Bug Investigation
-
-**Scenario**: Find all error handling related to a specific area.
-
-```
-You: Find all error handling around database connections
-
-Srclight:
-Found 8 relevant locations:
-
-1. src/db/connection.py:34
-   try-except with retry logic
-
-2. src/db/pool.py:52
-   ConnectionPool timeout handling
-
-3. src/api/middleware.py:28
-   Global exception handler for DB errors
-```
-
-### Use Case 5: Multi-repo Search
-
-**Scenario**: Search across multiple repositories in a single query.
+### Use Case 4: Multi-repo Search
 
 ```bash
-# Index multiple repos into separate workspaces
-srclight index /path/to/frontend --workspace frontend
-srclight index /path/to/backend --workspace backend
-srclight index /path/to/shared-lib --workspace shared
-
-# Srclight ATTACHes SQLite databases and UNIONs across schemas
-srclight search "user authentication" --workspace frontend,backend,shared
+# Search across all repos simultaneously
+srclight workspace search "user authentication" -w myworkspace
 ```
 
-## MCP Tools Reference
+## MCP Tools Reference (29 tools)
 
-Srclight exposes 25 tools through the MCP protocol. Key categories:
-
-### Symbol Search Tools
+### Tier 1: Instant Orientation
 
 | Tool | Description |
 |------|-------------|
-| `search_symbols` | Find symbols by name pattern |
-| `search_semantic` | Natural language code search |
-| `search_hybrid` | Combined keyword + semantic search (RRF) |
-| `find_similar` | Find code similar to a snippet |
+| `codebase_map()` | Full project overview — call first every session |
+| `search_symbols(query)` | Search across symbol names, code, and docs |
+| `get_symbol(name)` | Full source code + metadata for a symbol |
+| `get_signature(name)` | Just the signature (lightweight) |
+| `symbols_in_file(path)` | Table of contents for a file |
+| `list_projects()` | All projects in workspace with stats |
 
-### Relationship Graph Tools
-
-| Tool | Description |
-|------|-------------|
-| `get_call_graph` | Function call relationships |
-| `get_type_hierarchy` | Class/struct inheritance trees |
-| `get_references` | Where a symbol is used |
-| `get_dependencies` | Module/file dependency graph |
-
-### Git Change Intelligence Tools
+### Tier 2: Relationship Graph
 
 | Tool | Description |
 |------|-------------|
-| `get_recent_changes` | Recently modified symbols |
-| `get_change_frequency` | Hot spots in the codebase |
-| `get_co_change_patterns` | Files that change together |
+| `get_callers(name)` | Who calls this symbol? |
+| `get_callees(name)` | What does this symbol call? |
+| `get_dependents(name, transitive)` | Blast radius — what breaks if I change this? |
+| `get_implementors(interface)` | All classes implementing an interface |
+| `get_tests_for(name)` | Test functions covering a symbol |
+| `get_type_hierarchy(name)` | Inheritance tree (base + subclasses) |
 
-### Build System and Document Tools
+### Tier 3: Git Change Intelligence
 
 | Tool | Description |
 |------|-------------|
-| `get_build_targets` | Build system target analysis |
-| `extract_docs` | Extract documentation from code |
-| `get_file_summary` | Summarize file contents |
+| `blame_symbol(name)` | Who changed this, when, and why |
+| `recent_changes(n)` | Commit feed (cross-project in workspace) |
+| `git_hotspots(n, since)` | Most frequently changed files |
+| `whats_changed()` | Uncommitted work in progress |
+| `changes_to(name)` | Commit history for a symbol's file |
+
+### Tier 4: Build & Config
+
+| Tool | Description |
+|------|-------------|
+| `get_build_targets()` | CMake/.csproj/npm targets with dependencies |
+| `get_platform_variants(name)` | `#ifdef` platform guards around a symbol |
+| `platform_conditionals()` | All platform-conditional code blocks |
+
+### Tier 5: Semantic Search
+
+| Tool | Description |
+|------|-------------|
+| `semantic_search(query)` | Find code by meaning (natural language) |
+| `hybrid_search(query)` | Best of both: keyword + semantic with RRF |
+| `embedding_status()` | Embedding coverage and model info |
+
+### Tier 6: Meta & Server
+
+| Tool | Description |
+|------|-------------|
+| `index_status()` | Index freshness and stats |
+| `reindex()` | Trigger incremental re-index |
+| `embedding_health()` | Check if embedding provider is reachable |
+| `setup_guide()` | Structured setup instructions |
+| `server_stats()` | Server uptime and process info |
+| `restart_server()` | Request server restart (SSE only) |
 
 ### CLI Commands
 
 | Command | Description |
 |---------|-------------|
-| `srclight index <path>` | Index a project directory |
-| `srclight update --incremental` | Incremental index update |
-| `srclight search <query>` | Hybrid search (keyword + semantic) |
-| `srclight serve --workspace <name>` | Start MCP server |
-| `srclight stats` | Show index statistics |
-| `srclight clear` | Clear the index |
+| `srclight index` | Index current directory (incremental by default) |
+| `srclight search <query>` | Search the index |
+| `srclight symbols <file>` | List symbols in a file |
+| `srclight serve` | Start MCP server (stdio) |
+| `srclight serve --workspace <name>` | Start MCP server (workspace SSE on :8742) |
+| `srclight hook install` | Install git post-commit/post-checkout hooks |
+| `srclight workspace init <name>` | Create a multi-repo workspace |
+| `srclight workspace add <path> -w <name>` | Add a repo to a workspace |
+| `srclight workspace index -w <name>` | Index all repos in a workspace |
+| `srclight workspace status -w <name>` | Show workspace index status |
 
 ## Performance Notes
 
 | Metric | Value |
 |--------|-------|
 | Index speed | ~1000 files/minute (CPU) |
-| Search latency | <100ms (hybrid search) |
+| Search latency | <100ms (keyword); +embedding latency for semantic |
+| Semantic query | ~3ms (GPU-resident cache via cupy) |
 | Index size | ~1KB/file average |
-| Embedding latency | ~50-200ms per MCP call (network-dependent) |
 
-### Optimization Tips
-
-- Exclude test files and generated code for a smaller index
-- Incremental updates for active development (only re-indexes changed files)
-- FTS5 keyword search alone is sub-millisecond; embedding lookup adds the latency
-- Multi-repo workspaces share a single embedding server endpoint
+- Incremental indexing only re-processes changed files (content hash detection)
+- FTS5 keyword search is sub-millisecond
+- GPU (cupy) optional — significant speedup for large embedding caches
 
 ## Integration with Serena
 
-Srclight works alongside Serena for complete codebase understanding:
+Srclight and Serena cover complementary ground:
 
 | Query Type | Handler | Example |
 |------------|---------|---------|
-| Symbol lookup | Serena | "Find function login_handler" |
-| Natural language | Srclight | "Where is auth handled?" |
-| Relationship graph | Srclight | "What calls validate_token?" |
-| Code navigation | Serena | "Go to definition of UserService" |
-| Combined | Both | "Find password validation and show references" |
-
-### Combined Workflow
-
-```
-You: Find where we validate user passwords
-
-Srclight: [Hybrid search - keyword + semantic]
-Found in src/auth/validators.py:15
-
-You: Show me that function and all its references
-
-Serena: [Symbol search + navigation]
-Function: validate_password()
-References: 8 locations across 4 files
-```
+| Symbol lookup by name | Serena | "Find function `login_handler`" |
+| Natural language concept | Srclight | "Where is auth handled?" |
+| Caller/callee graph | Srclight | "What calls `validate_token`?" |
+| Blast radius | Srclight | "What breaks if I rename this?" |
+| Go to definition | Serena | "Jump to `UserService`" |
+| Git blame | Srclight | "Who changed `auth_middleware`?" |
 
 ## Troubleshooting
+
+### "No index found"
+
+```bash
+srclight index
+```
 
 ### "Embedding server connection refused"
 
 ```bash
 # Verify the internal server is reachable
 curl http://inference.internal/v1/models
-
-# Check Srclight config points to the correct base_url
-cat .srclight/config.yml
 ```
 
-### "Model not found"
+Re-index specifying the correct server:
 
 ```bash
-# List models available on the internal server
-curl http://inference.internal/v1/models
-
-# Verify the model name in .srclight/config.yml matches exactly
+INFERENCE_API_KEY=sk-xxx srclight index \
+  --embed http://inference.internal/v1 \
+  --embed-model text-embedding-gte-multilingual-base
 ```
 
-### "Index not found"
+### "Semantic search returns no results"
+
+Embeddings may not have been generated at index time. Check coverage:
 
 ```bash
-# Create new index
-srclight index /path/to/project
+# Via MCP tool
+embedding_status()
 ```
+
+Re-index with `--embed` if needed.
 
 ### "Slow indexing"
 
-- Reduce `batch_size` in config to lower concurrent embedding requests
-- Exclude large directories (node_modules, build artifacts)
+- Exclude large directories: `srclight index --exclude node_modules --exclude build`
 - Check network latency to the internal embedding server
-
-### "Memory issues"
-
-- Reduce `batch_size` in config
-- Exclude large files (binaries, build outputs)
 
 ## Next Steps
 

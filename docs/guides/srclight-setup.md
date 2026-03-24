@@ -1,10 +1,15 @@
 # Srclight Setup Guide
 
-Srclight is the **semantic layer** of the air-gapped AI coding architecture. It combines SQLite FTS5 keyword search, tree-sitter symbol extraction, and embeddings via an internal OpenAI-compatible server into a hybrid search engine for code.
+Srclight is the **semantic layer** of the air-gapped AI coding architecture. It combines SQLite FTS5
+keyword search, tree-sitter symbol extraction, and embeddings via an internal OpenAI-compatible
+server into a hybrid search engine for code.
 
 ## Overview
 
-Srclight indexes your codebase using three complementary strategies: tree-sitter for structural symbols, FTS5 trigram + porter stemmer for keyword matching, and semantic embeddings for natural language queries. Results merge through Reciprocal Rank Fusion (RRF). It exposes 25 MCP tools and supports 7 languages (C, C++, Python, TypeScript, JavaScript, Rust, Go).
+Srclight indexes your codebase using four complementary strategies: tree-sitter for structural
+symbols, three FTS5 indexes for keyword matching (names, trigram, docstrings), and optional semantic
+embeddings for natural language queries. Results merge through Reciprocal Rank Fusion (RRF). It
+exposes 29 MCP tools and supports 11 languages.
 
 ## Installation
 
@@ -12,129 +17,158 @@ Srclight indexes your codebase using three complementary strategies: tree-sitter
 pip install srclight
 ```
 
-Embeddings are provided by the internal inference server. No local model installation is required — Srclight calls the server's OpenAI-compatible `/v1/embeddings` endpoint at index time and query time.
+Embeddings are provided by the internal inference server. No local model installation is required —
+Srclight calls the server's OpenAI-compatible `/v1/embeddings` endpoint at index time and query time.
 
 ## Configuration
 
-Srclight auto-generates config on first run. To customize, edit `.srclight/config.yml`:
+**Srclight has no config file.** All configuration is via CLI flags at index time. The `.srclight/`
+directory contains only `index.db` (SQLite) and optional `.npy` embedding sidecars.
 
-```yaml
-database:
-  path: .srclight/index.db
+> `srclight index` automatically adds `.srclight/` to your `.gitignore`.
 
-embeddings:
-  provider: openai-compatible
-  base_url: http://inference.internal/v1
-  model: text-embedding-gte-multilingual-base
-  api_key: ${INFERENCE_API_KEY}   # LiteLLM or internal server key
+## Indexing
 
-indexing:
-  batch_size: 100
-  max_file_size: 1048576        # 1MB
-  exclude:
-    - "*.min.js"
-    - "node_modules/"
-    - "__pycache__/"
-    - ".git/"
+```bash
+# Keyword-only index (no embeddings)
+cd /path/to/repo
+srclight index
+
+# Index with embeddings via internal server
+INFERENCE_API_KEY=sk-xxx srclight index \
+  --embed http://inference.internal/v1 \
+  --embed-model text-embedding-gte-multilingual-base
 ```
 
 Replace `http://inference.internal/v1` with the actual base URL of your internal inference server.
 
+Indexing is incremental by default — only re-indexes files whose content hash changed. Re-run
+`srclight index` at any time; it will only process what has changed.
+
 ## Local Fallback: infinity-emb
 
-If the internal inference server is unavailable, `infinity-emb` provides a drop-in local replacement.
-It serves the same model over the same OpenAI-compatible API — only the `base_url` changes.
+If the internal inference server is unavailable, `infinity-emb` provides a drop-in local replacement
+serving the same model over the same OpenAI-compatible API.
 
 ```bash
 # Install
 pip install "infinity-emb[all]"
 
-# Pre-download model (do this before going air-gapped)
+# Pre-download model before going air-gapped
 python -c "from huggingface_hub import snapshot_download; snapshot_download('Alibaba-NLP/gte-multilingual-base')"
+export HF_HUB_OFFLINE=1
 
 # Run (exposes http://localhost:7997/v1/embeddings)
 infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 7997
 ```
 
-Update `.srclight/config.yml` to point at the local server:
-
-```yaml
-embeddings:
-  provider: openai-compatible
-  base_url: http://localhost:7997/v1
-  model: text-embedding-gte-multilingual-base
-  # api_key not required for local infinity-emb
-```
-
-Set `HF_HUB_OFFLINE=1` after model download to prevent any Hugging Face network access:
+Index using the local server:
 
 ```bash
-export HF_HUB_OFFLINE=1
+srclight index \
+  --embed http://localhost:7997/v1 \
+  --embed-model text-embedding-gte-multilingual-base
+# No API key needed for local infinity-emb
 ```
 
 ## Usage
 
-### Indexing
+### Single Repo
 
 ```bash
-# Index a project
-srclight index /path/to/repo
+# Index
+srclight index
+srclight index --embed http://inference.internal/v1 --embed-model text-embedding-gte-multilingual-base
 
-# Named workspace (for multi-repo setups)
-srclight index /path/to/repo --workspace myproject
-
-# Incremental update after code changes
-srclight update --incremental
-
-# Full rebuild
-srclight index --rebuild
-```
-
-### Searching
-
-```bash
-# Hybrid search (keyword + semantic via RRF)
+# Search
 srclight search "authentication flow"
+srclight search --kind function "parseJson"
 
-# Filter by language
-srclight search "JWT validation" --lang python
+# Start MCP server (stdio)
+srclight serve
 
-# Symbol-specific
-srclight search "parseJson" --type function
+# Register with Claude Code
+claude mcp add srclight -- srclight serve
 ```
 
 ### Multi-repo Workspaces
 
-Srclight supports ATTACH across multiple SQLite databases and UNION across schemas:
+```bash
+# Create workspace
+srclight workspace init myworkspace
+
+# Add repos
+srclight workspace add /path/to/repo1 -w myworkspace
+srclight workspace add /path/to/repo2 -w myworkspace
+
+# Index all repos
+srclight workspace index -w myworkspace \
+  --embed http://inference.internal/v1 \
+  --embed-model text-embedding-gte-multilingual-base
+
+# Start MCP server (SSE — persistent, port 8742)
+srclight serve --workspace myworkspace &
+claude mcp add --transport sse srclight http://127.0.0.1:8742/sse
+
+# Status
+srclight workspace status -w myworkspace
+```
+
+### Auto-reindex (Git Hooks)
 
 ```bash
-srclight index /path/to/frontend --workspace frontend
-srclight index /path/to/backend --workspace backend
-srclight search "user auth" --workspace frontend,backend
+# Install hooks in current repo
+srclight hook install
+
+# Install across all repos in a workspace
+srclight hook install --workspace myworkspace
 ```
 
 ## Integration with OpenCode
 
-Start Srclight as an MCP server to expose all 25 tools to the orchestration layer:
+Add Srclight to `opencode.json` as an MCP server:
 
-```bash
-srclight serve --workspace myproject
+```json
+{
+  "mcp": {
+    "srclight": {
+      "type": "local",
+      "command": ["srclight", "serve"],
+      "enabled": true
+    }
+  }
+}
 ```
 
-The 25 tools cover symbol search, relationship graphs (call graphs, type hierarchies), git change intelligence, semantic search, build system awareness, and document extraction. Serena handles structural/symbolic queries while Srclight handles semantic and hybrid queries.
+For workspace mode (SSE):
+
+```json
+{
+  "mcp": {
+    "srclight": {
+      "type": "remote",
+      "url": "http://127.0.0.1:8742/sse",
+      "enabled": true
+    }
+  }
+}
+```
+
+The 29 MCP tools cover symbol search, relationship graphs (callers, callees, blast radius),
+git change intelligence, semantic search, build system awareness, and document extraction.
+Serena handles structural/symbolic queries; Srclight handles semantic and hybrid queries.
 
 ## Performance Notes
 
 | Metric | Value |
 |--------|-------|
 | Index speed | ~1000 files/minute (CPU) |
-| Search latency | <100ms (hybrid) |
-| Embedding latency | ~50-200ms per MCP call |
+| Search latency | <100ms (keyword); ~3ms (semantic, GPU cache) |
 | Index size | ~1KB/file average |
 
-- Incremental updates only re-index changed files
-- FTS5 keyword search alone is sub-millisecond; embedding lookup adds network latency
-- Reduce `batch_size` if the embedding server is under load
+- Incremental indexing only re-processes changed files (content hash detection)
+- FTS5 keyword search is sub-millisecond
+- GPU (cupy) optional: `pip install 'srclight[gpu]'` for CUDA-accelerated semantic search
 
 ## Next Steps
 

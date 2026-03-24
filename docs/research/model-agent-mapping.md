@@ -59,6 +59,8 @@ Several models offer reasoning-disabled variants. These skip chain-of-thought, p
 
 Each Oh-My-OpenCode-Slim agent has different requirements:
 
+### OMO Slim Agents
+
 | Agent | Role | Needs | Priority |
 |-------|------|-------|----------|
 | **Sisyphus** | Orchestrator | Best reasoning, delegation, tool calling, plan tracking | Quality > Speed |
@@ -68,6 +70,14 @@ Each Oh-My-OpenCode-Slim agent has different requirements:
 | **Librarian** | Knowledge | Fast, good at retrieval, documentation understanding | Speed > Quality |
 | **Designer** | Visual | UI/UX understanding, visual reasoning, coding quality | Quality ≈ Speed |
 | **Fixer** | Implementation | Strong coding, medium reasoning, fast turnaround | Speed ≈ Quality |
+
+### OpenCode Built-in + OMO Slim Extended Agents
+
+| Agent | Mode | Role | Needs | Priority |
+|-------|------|------|-------|----------|
+| **build** | primary | Main implementation agent; all tools enabled; default for user interaction | Strong coding, solid tool-use, responsive | Speed ≈ Quality |
+| **plan** | primary | Read-only planning; proposes architecture before any code is written | Deep reasoning, requirement understanding, no file writes | Quality > Speed |
+| **code-reviewer** | subagent | Reviews code for correctness, security, best practices; read-only | Best reasoning, security awareness, technical depth | Quality > Speed |
 
 ---
 
@@ -81,17 +91,20 @@ Optimized for quality + cost efficiency:
 {
   "agents": {
     // Tier 1: Best reasoning (few calls, high impact)
-    "sisyphus":  { "model": "Qwen3.5-397B-A17B" },
-    "prometheus": { "model": "Kimi-K2.5" },
-    "oracle":    { "model": "Qwen3.5-397B-A17B" },
+    "sisyphus":       { "model": "Qwen3.5-397B-A17B" },
+    "prometheus":     { "model": "Kimi-K2.5" },
+    "oracle":         { "model": "Qwen3.5-397B-A17B" },
+    "plan":           { "model": "Qwen3.5-397B-A17B" },
+    "code-reviewer":  { "model": "Qwen3.5-397B-A17B" },
 
     // Tier 2: Fast and cheap (many calls, parallel)
-    "explorer":  { "model": "qwen3-coder-next" },
-    "librarian": { "model": "Qwen3-30B-A3B-Instruct-2507" },
+    "explorer":       { "model": "qwen3-coder-next" },
+    "librarian":      { "model": "Qwen3-30B-A3B-Instruct-2507" },
 
     // Tier 3: Balanced (moderate calls, needs coding quality)
-    "designer":  { "model": "Kimi-K2.5-NoReasoning" },
-    "fixer":     { "model": "gpt-oss-120b-thinking-low" }
+    "designer":       { "model": "Kimi-K2.5-NoReasoning" },
+    "fixer":          { "model": "gpt-oss-120b-thinking-low" },
+    "build":          { "model": "gpt-oss-120b-thinking-low" }
   }
 }
 ```
@@ -107,6 +120,9 @@ Optimized for quality + cost efficiency:
 | **Librarian** | Qwen3-30B-A3B-2507 | 3.3B active, extended to 262k context in July 2025 update. Dual-mode (can think when needed for complex doc analysis, skip thinking for simple retrieval). Apache 2.0 = fully auditable. |
 | **Designer** | Kimi-K2.5-NoReasoning | Native vision-to-code capability — generates code directly from UI mockups, images, and video. NoReasoning for speed on design tasks where visual understanding matters more than deep logic. |
 | **Fixer** | gpt-oss-120b-thinking-low | Strong HumanEval (88.3%), excellent tool-use, runs on single H100. Low-thinking mode provides enough reasoning for bug fixes without the overhead of full CoT. Apache 2.0. |
+| **build** | gpt-oss-120b-thinking-low | Same profile as Fixer — the default primary agent for direct user interaction needs strong coding and tool-use with fast turnaround. Shares model instance with Fixer to reduce VRAM overhead. |
+| **plan** | Qwen3.5-397B-A17B | Read-only planning mode demands the highest reasoning quality — it must correctly decompose requirements before any file is touched. Same model as Oracle and Sisyphus; no write access means no risk from occasional errors. |
+| **code-reviewer** | Qwen3.5-397B-A17B | GPQA 88.4% (PhD-level) is the critical metric — catching subtle security flaws and logic errors requires deep technical understanding. Read-only subagent; highest-quality model justified by high impact of missed bugs. |
 
 ### Alternative Configuration: Throughput-Optimized
 
@@ -115,13 +131,16 @@ For hardware-constrained environments prioritizing speed:
 ```jsonc
 {
   "agents": {
-    "sisyphus":  { "model": "gpt-oss-120b-thinking-medium" },
-    "prometheus": { "model": "gpt-oss-120b-thinking-medium" },
-    "oracle":    { "model": "Nemotron-3-Super-120B-A12B-FP8" },
-    "explorer":  { "model": "Qwen3-30B-A3B-Instruct-2507" },
-    "librarian": { "model": "Qwen3-30B-A3B-Instruct-2507" },
-    "designer":  { "model": "mistral-medium-2505" },
-    "fixer":     { "model": "qwen3-coder-next" }
+    "sisyphus":       { "model": "gpt-oss-120b-thinking-medium" },
+    "prometheus":     { "model": "gpt-oss-120b-thinking-medium" },
+    "oracle":         { "model": "Nemotron-3-Super-120B-A12B-FP8" },
+    "plan":           { "model": "Nemotron-3-Super-120B-A12B-FP8" },
+    "code-reviewer":  { "model": "Nemotron-3-Super-120B-A12B-FP8" },
+    "explorer":       { "model": "Qwen3-30B-A3B-Instruct-2507" },
+    "librarian":      { "model": "Qwen3-30B-A3B-Instruct-2507" },
+    "designer":       { "model": "mistral-medium-2505" },
+    "fixer":          { "model": "qwen3-coder-next" },
+    "build":          { "model": "qwen3-coder-next" }
   }
 }
 ```
@@ -131,10 +150,13 @@ For hardware-constrained environments prioritizing speed:
 | **Sisyphus** | gpt-oss-120b-thinking-medium | Single H100, 400+ tok/s, strong tool-use. Medium reasoning balances quality/speed. |
 | **Prometheus** | gpt-oss-120b-thinking-medium | Same model as Sisyphus — reduces model loading overhead. Shared GPU. |
 | **Oracle** | Nemotron-3-Super-FP8 | 1M context window for deep analysis. 2.2x faster throughput than gpt-oss-120b. Excellent agentic scores. |
+| **plan** | Nemotron-3-Super-FP8 | 1M context for holding large requirement sets; shares model instance with Oracle. |
+| **code-reviewer** | Nemotron-3-Super-FP8 | Strong agentic reasoning; 1M context allows reviewing large files. Shares instance with Oracle. |
 | **Explorer** | Qwen3-30B-A3B-2507 | Tiny footprint, fast, can run on 24GB GPU. Non-thinking mode for speed. |
 | **Librarian** | Qwen3-30B-A3B-2507 | Same as Explorer — shared model instance. |
 | **Designer** | mistral-medium-2505 | Multimodal (vision + text), 4-GPU deployment, strong on HumanEval. |
 | **Fixer** | qwen3-coder-next | 3B active, coding-specialized, fastest turnaround for implementation tasks. |
+| **build** | qwen3-coder-next | Shares model with Fixer — coding-specialized, low latency for interactive user sessions. |
 
 ### Alternative Configuration: Maximum Context
 
@@ -143,13 +165,16 @@ For very large codebases requiring deep context:
 ```jsonc
 {
   "agents": {
-    "sisyphus":  { "model": "Nemotron-3-Super-120B-A12B-FP8" },
-    "prometheus": { "model": "Qwen3.5-397B-A17B" },
-    "oracle":    { "model": "Nemotron-3-Super-120B-A12B-FP8" },
-    "explorer":  { "model": "qwen3-coder-next" },
-    "librarian": { "model": "Qwen3-30B-A3B-Instruct-2507" },
-    "designer":  { "model": "Kimi-K2.5-NoReasoning" },
-    "fixer":     { "model": "gpt-oss-120b-thinking-low" }
+    "sisyphus":       { "model": "Nemotron-3-Super-120B-A12B-FP8" },
+    "prometheus":     { "model": "Qwen3.5-397B-A17B" },
+    "oracle":         { "model": "Nemotron-3-Super-120B-A12B-FP8" },
+    "plan":           { "model": "Qwen3.5-397B-A17B" },
+    "code-reviewer":  { "model": "Nemotron-3-Super-120B-A12B-FP8" },
+    "explorer":       { "model": "qwen3-coder-next" },
+    "librarian":      { "model": "Qwen3-30B-A3B-Instruct-2507" },
+    "designer":       { "model": "Kimi-K2.5-NoReasoning" },
+    "fixer":          { "model": "gpt-oss-120b-thinking-low" },
+    "build":          { "model": "gpt-oss-120b-thinking-low" }
   }
 }
 ```
@@ -162,15 +187,15 @@ Nemotron-3-Super for Sisyphus and Oracle provides **1M token context** — criti
 
 How each model scores against each agent role (1-5, higher is better):
 
-| Model | Sisyphus | Prometheus | Oracle | Explorer | Librarian | Designer | Fixer |
-|-------|----------|-----------|--------|----------|-----------|----------|-------|
-| Qwen3.5-397B-A17B | 5 | 4 | 5 | 2 | 2 | 4 | 3 |
-| Kimi-K2.5 | 4 | 5 | 4 | 2 | 2 | 5 | 3 |
-| gpt-oss-120b | 3 | 3 | 3 | 3 | 3 | 2 | 4 |
-| Nemotron-3-Super-FP8 | 4 | 3 | 4 | 3 | 3 | 2 | 3 |
-| qwen3-coder-next | 1 | 1 | 1 | 5 | 4 | 1 | 4 |
-| Qwen3-30B-A3B-2507 | 1 | 1 | 1 | 4 | 5 | 1 | 3 |
-| mistral-medium-2505 | 2 | 2 | 2 | 3 | 3 | 3 | 3 |
+| Model | Sisyphus | Prometheus | Oracle | Explorer | Librarian | Designer | Fixer | build | plan | code-reviewer |
+|-------|----------|-----------|--------|----------|-----------|----------|-------|-------|------|---------------|
+| Qwen3.5-397B-A17B | 5 | 4 | 5 | 2 | 2 | 4 | 3 | 3 | 5 | 5 |
+| Kimi-K2.5 | 4 | 5 | 4 | 2 | 2 | 5 | 3 | 3 | 4 | 4 |
+| gpt-oss-120b | 3 | 3 | 3 | 3 | 3 | 2 | 4 | 5 | 3 | 3 |
+| Nemotron-3-Super-FP8 | 4 | 3 | 4 | 3 | 3 | 2 | 3 | 3 | 4 | 4 |
+| qwen3-coder-next | 1 | 1 | 1 | 5 | 4 | 1 | 4 | 5 | 1 | 1 |
+| Qwen3-30B-A3B-2507 | 1 | 1 | 1 | 4 | 5 | 1 | 3 | 3 | 2 | 1 |
+| mistral-medium-2505 | 2 | 2 | 2 | 3 | 3 | 3 | 3 | 3 | 2 | 2 |
 
 **Reading the matrix:**
 - **5** = Optimal for this role
@@ -179,11 +204,16 @@ How each model scores against each agent role (1-5, higher is better):
 - **2** = Suboptimal but functional
 - **1** = Poor fit (wrong capability profile)
 
+**Scoring notes for new agents:**
+- **build**: Scored like Fixer but with a slight edge on `gpt-oss-120b` and `qwen3-coder-next` — direct user interaction demands fast, correct code output above all else.
+- **plan**: Scored like Oracle — read-only, reasoning-heavy. Best models are those with highest MMLU-Pro and instruction-following (Qwen3.5-397B-A17B).
+- **code-reviewer**: Scored like Oracle — needs maximum technical depth (GPQA) to catch subtle bugs and security issues. `qwen3-coder-next` scores 1 because its no-thinking mode is a liability for careful review.
+
 ---
 
 ## Air-Gap Deployment Considerations
 
-All models must be served locally via Ollama, vLLM, or similar. Key constraints:
+All models must be served via the internal inference server. Key constraints:
 
 | Model | Quantization Required | Local Serving Feasibility | Air-Gap Concern |
 |-------|----------------------|--------------------------|-----------------|
@@ -201,9 +231,9 @@ Running the recommended configuration requires serving 4 distinct models simulta
 
 | Model Instance | Serves Agents | Min VRAM |
 |---------------|---------------|---------|
-| Qwen3.5-397B-A17B | Sisyphus + Oracle | ~214GB (Q4) |
+| Qwen3.5-397B-A17B | Sisyphus + Oracle + plan + code-reviewer | ~214GB (Q4) |
 | Kimi-K2.5 | Prometheus + Designer (NoReasoning) | ~256GB (Q4) |
-| gpt-oss-120b | Fixer | 80GB (1x H100) |
+| gpt-oss-120b | Fixer + build | 80GB (1x H100) |
 | qwen3-coder-next + Qwen3-30B-A3B | Explorer + Librarian | ~72GB combined (Q4) |
 
 **Total estimated**: 600-800GB VRAM across a multi-GPU server, or distributed across multiple machines behind vLLM.

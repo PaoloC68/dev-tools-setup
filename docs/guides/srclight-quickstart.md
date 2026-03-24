@@ -123,15 +123,13 @@ srclight index
 
 # Index with embeddings via internal OpenAI-compatible server
 # Model names starting with "text-embedding" are auto-detected as OpenAI-compatible:
-OPENAI_API_KEY=sk-xxx srclight index \
-  --embed http://inference.internal/v1 \
-  --embed-model qwen3-embedding-8b
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed openai:qwen3-embedding-8b
 
 # For other model names (e.g. qwen3-embedding-8b), use the "openai:" prefix to
 # force OpenAI-compatible provider — otherwise Srclight defaults to Ollama:
-OPENAI_API_KEY=sk-xxx srclight index \
-  --embed http://inference.internal/v1 \
-  --embed-model qwen3-embedding-8b
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed openai:qwen3-embedding-8b
 ```
 
 Tree-sitter parses each file, extracts symbols and relationships, then the embedding server
@@ -191,14 +189,13 @@ you get hybrid search (FTS5 + semantic via RRF).
 ### Internal Server (Default for This Deployment)
 
 ```bash
-OPENAI_API_KEY=sk-xxx srclight index \
-  --embed http://inference.internal/v1 \
-  --embed-model qwen3-embedding-8b
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed openai:qwen3-embedding-8b
 ```
 
-> **Model routing**: When `--embed` receives a URL (starting with `http`), Srclight uses the
-> OpenAI-compatible provider regardless of the model name set via `--embed-model`. This means
-> any model served by the internal server works — `qwen3-embedding-8b`, `gte-large`, etc.
+> **Model routing**: When `--embed` receives a value with the `openai:` prefix, Srclight uses the
+> OpenAI-compatible provider. The base URL is set via `OPENAI_BASE_URL`. Any model
+> served by the internal server works — `openai:qwen3-embedding-8b`, `openai:gte-large`, etc.
 
 ### Local Fallback: infinity-emb
 
@@ -221,7 +218,7 @@ infinity_emb v2 --model-name-or-path Qwen/Qwen3-Embedding-8B --port 7997
 **Index using the local server:**
 
 ```bash
-srclight index --embed http://localhost:7997/v1 --embed-model qwen3-embedding-8b
+OPENAI_BASE_URL=http://localhost:7997 srclight index --embed openai:qwen3-embedding-8b
 # No OPENAI_API_KEY needed for local infinity-emb
 ```
 
@@ -245,8 +242,8 @@ srclight workspace add /path/to/repo1 -w myworkspace
 srclight workspace add /path/to/repo2 -w myworkspace
 
 # Index all repos with embeddings
-OPENAI_API_KEY=sk-xxx srclight workspace index -w myworkspace \
-  --embed http://inference.internal/v1 --embed-model qwen3-embedding-8b
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
+  srclight workspace index -w myworkspace --embed openai:qwen3-embedding-8b
 
 # Start MCP server in workspace mode
 srclight serve --workspace myworkspace
@@ -418,9 +415,8 @@ curl http://inference.internal/v1/models
 Re-index specifying the correct server:
 
 ```bash
-OPENAI_API_KEY=sk-xxx srclight index \
-  --embed http://inference.internal/v1 \
-  --embed-model qwen3-embedding-8b
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed openai:qwen3-embedding-8b
 ```
 
 ### "Semantic search returns no results"

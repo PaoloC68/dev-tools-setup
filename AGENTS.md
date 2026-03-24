@@ -120,7 +120,7 @@ Key technical details to preserve:
 - Srclight embeddings: internal OpenAI-compatible inference server, model `qwen3-embedding-8b`
 - Srclight search: Hybrid — three FTS5 indexes (names, trigram, docstrings) + semantic via Reciprocal Rank Fusion (RRF)
 - Srclight parsing: tree-sitter (11 languages: Python, C, C++, C#, JavaScript, TypeScript, PHP, Dart, Swift, Kotlin, Java, Go)
-- Srclight has no config file — configuration is via CLI flags (`--embed`, `--embed-model`) at index time
+- Srclight has no config file — configuration is via CLI flags (`--embed`) and env vars (`OPENAI_BASE_URL`, `OPENAI_API_KEY`) at index time
 - C/C++ LSP: clangd (default, recommended) or ccls (alternative)
 - `compile_commands.json` is a hard requirement for C/C++ projects
 - All components operate 100% offline — no runtime network access

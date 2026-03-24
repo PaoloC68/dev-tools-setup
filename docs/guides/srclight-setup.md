@@ -81,17 +81,15 @@ cd /path/to/repo
 srclight index
 
 # Index with embeddings via internal OpenAI-compatible server
-# Pass the server URL to --embed and the model name to --embed-model:
-OPENAI_API_KEY=sk-xxx srclight index \
-  --embed http://inference.internal/v1 \
-  --embed-model qwen3-embedding-8b
+# Use openai: prefix + OPENAI_BASE_URL (no /v1 suffix):
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed openai:qwen3-embedding-8b
 ```
 
 Replace `http://inference.internal/v1` with the actual base URL of your internal inference server.
 
-> **Provider selection**: When `--embed` receives a URL (starting with `http`), Srclight uses
-> the OpenAI-compatible provider regardless of the model name. Any model served by the internal
-> server works — pass its exact name via `--embed-model`.
+> **Provider selection**: Use the `openai:` prefix with `--embed` and set `OPENAI_BASE_URL`
+> to your server. Any model works — `openai:qwen3-embedding-8b`, `openai:gte-large`, etc.
 
 Indexing is incremental by default — only re-indexes files whose content hash changed. Re-run
 `srclight index` at any time; it will only process what has changed.
@@ -116,7 +114,7 @@ infinity_emb v2 --model-name-or-path Qwen/Qwen3-Embedding-8B --port 7997
 Index using the local server:
 
 ```bash
-srclight index --embed http://localhost:7997/v1 --embed-model qwen3-embedding-8b
+OPENAI_BASE_URL=http://localhost:7997 srclight index --embed openai:qwen3-embedding-8b
 # No OPENAI_API_KEY needed for local infinity-emb
 ```
 
@@ -127,7 +125,7 @@ srclight index --embed http://localhost:7997/v1 --embed-model qwen3-embedding-8b
 ```bash
 # Index
 srclight index
-OPENAI_API_KEY=sk-xxx srclight index --embed http://inference.internal/v1 --embed-model qwen3-embedding-8b
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index --embed openai:qwen3-embedding-8b
 
 # Search
 srclight search "authentication flow"
@@ -151,8 +149,8 @@ srclight workspace add /path/to/repo1 -w myworkspace
 srclight workspace add /path/to/repo2 -w myworkspace
 
 # Index all repos
-OPENAI_API_KEY=sk-xxx srclight workspace index -w myworkspace \
-  --embed http://inference.internal/v1 --embed-model qwen3-embedding-8b
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
+  srclight workspace index -w myworkspace --embed openai:qwen3-embedding-8b
 
 # Start MCP server (SSE — persistent, port 8742)
 srclight serve --workspace myworkspace &

@@ -12,7 +12,6 @@ OpenCode acts as a 100% offline IDE replacement, routing queries to localized MC
 # Install OpenCode
 curl -fsSL https://opencode.ai/install | bash
 # or: npm i -g opencode-ai@latest
-# or: brew install anomalyco/tap/opencode
 
 # Install MCP server dependencies (pre-download for air-gapped)
 pip install "serena[mcp]"
@@ -56,43 +55,64 @@ OMO Slim is loaded as an OpenCode plugin. Add it to your `opencode.json`:
 }
 ```
 
-OMO Slim's own agent model configuration goes in a separate file. The schema is available for editor autocomplete:
+OMO Slim's own agent configuration lives in `~/.config/opencode/oh-my-opencode-slim.json`
+(global) or `.opencode/oh-my-opencode-slim.json` (project-local). Both support `.jsonc`
+(JSON with comments). The schema provides editor autocomplete:
 
-```json
+```jsonc
 {
   "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
-  "agents": {
-    "orchestrator": { "model": "openai/gpt-5.4" },
-    "oracle": { "model": "openai/gpt-5.4" },
-    "explorer": { "model": "openai/gpt-5.4-mini" },
-    "librarian": { "model": "openai/gpt-5.4-mini" },
-    "designer": { "model": "kimi-for-coding/k2p5" },
-    "fixer": { "model": "openai/gpt-5.4-mini" }
+
+  // Use a named preset
+  "preset": "internal",
+
+  "presets": {
+    "internal": {
+      "orchestrator": { "model": "internal/your-llm-model", "skills": ["*"], "mcps": ["websearch"] },
+      "oracle":       { "model": "internal/your-llm-model", "skills": [], "mcps": [] },
+      "librarian":    { "model": "internal/your-fast-model", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
+      "explorer":     { "model": "internal/your-fast-model", "skills": [], "mcps": [] },
+      "designer":     { "model": "internal/your-llm-model", "skills": ["agent-browser"], "mcps": [] },
+      "fixer":        { "model": "internal/your-fast-model", "skills": [], "mcps": [] }
+    }
   }
 }
 ```
 
+Replace `internal/your-llm-model` and `internal/your-fast-model` with the actual model IDs
+served by your internal inference server.
+
+For local-only fallback configuration examples, see the
+[OMO Slim Air-Gap Analysis](../research/omo-slim-airgap-analysis.md).
+
 ### Specialized Agents
 
-| Agent | Role | Typical Model | Description |
-|-------|------|---------------|-------------|
-| Sisyphus | Orchestrator | Opus-class | Main entry point. Delegates tasks to specialists. Never works alone when delegation is possible. |
-| Prometheus | Planner | Opus-class | Creates parallel task graphs, structured TODO lists. Invoked before complex implementations. |
-| Oracle | Advisor | Opus-class | Read-only consultant. Architecture review, debugging after 2+ failed attempts, complex tradeoffs. |
-| Explorer | Recon | Haiku-class | Parallel codebase exploration. Contextual grep, pattern discovery. Runs in background. Cheap and fast. |
-| Librarian | Knowledge | Haiku-class | External reference search. Official docs, OSS examples, GitHub code search. |
-| Designer | Visual | Sonnet-class | Frontend, UI/UX, design, styling, animation work. |
-| Fixer | Implementation | Sonnet-class | Bug fixes, quick changes, single-file modifications. |
+OMO Slim ships six agents. These are the actual agent identifiers used in configuration:
+
+| Agent | Default Model | Role |
+|-------|---------------|------|
+| `orchestrator` | `openai/gpt-5.4` | Master delegator and strategic coordinator. Determines optimal path to any goal. |
+| `oracle` | `openai/gpt-5.4` | Strategic advisor and debugger of last resort. Read-only consultation. |
+| `librarian` | `openai/gpt-5.4-mini` | External knowledge retrieval. Docs, OSS examples, GitHub search. |
+| `explorer` | `openai/gpt-5.4-mini` | Codebase reconnaissance. Fast, parallel, read-only. |
+| `designer` | `kimi-for-coding/k2p5` | UI/UX implementation and visual excellence. |
+| `fixer` | `openai/gpt-5.4-mini` | Fast implementation specialist. Bug fixes, single-file changes. |
 
 ### Pre-configured MCPs
 
-OMO Slim includes three MCP servers out of the box:
+OMO Slim includes three MCP servers out of the box. Each agent has a default allowlist:
 
-| MCP | Purpose | Used By |
-|-----|---------|---------|
-| `websearch` | Real-time web search via Exa AI | Sisyphus, Librarian, Prometheus |
-| `context7` | Official library documentation | Librarian |
-| `grep_app` | GitHub code search via grep.app | Oracle |
+| MCP | URL | Default Agents |
+|-----|-----|----------------|
+| `websearch` | `https://mcp.exa.ai/mcp` | `orchestrator`, `librarian` |
+| `context7` | `https://mcp.context7.com/mcp` | `librarian` |
+| `grep_app` | `https://mcp.grep.app` | `librarian` |
+
+> **Air-Gap Warning**: All three MCPs make outbound network calls. Disable them for air-gapped
+> deployments by adding to your config:
+> ```json
+> { "disabled_mcps": ["websearch", "context7", "grep_app"] }
+> ```
 
 ### Task Categories
 
@@ -120,15 +140,20 @@ Without OMO Slim, OpenCode runs as a single agent. With OMO Slim:
 
 ```
 project-root/
-├── opencode.json        # OpenCode + OMO Slim configuration
-├── AGENTS.md            # Project context for OpenCode (generated by /init)
-├── .serena/             # Serena (symbolic layer)
-│   ├── memories/        # Persistent insights
+├── opencode.json                              # OpenCode config
+├── .opencode/
+│   └── oh-my-opencode-slim.json              # OMO Slim project-local config (optional)
+├── AGENTS.md                                  # Project context (generated by /init)
+├── .serena/
+│   ├── memories/                              # Serena persistent insights
 │   └── project.yml
-├── .srclight/           # Srclight (semantic layer)
-│   ├── index.db
-│   └── config.yml
+├── .srclight/
+│   └── index.db                               # Srclight index (no config file)
 └── compile_commands.json
+
+~/.config/opencode/
+├── opencode.json                              # OpenCode global config
+└── oh-my-opencode-slim.json                  # OMO Slim global config
 ```
 
 ## Configuration
@@ -250,11 +275,10 @@ Distribute consistent tool configurations via version control:
 
 ```
 team-dotfiles/
-├── .opencode.json          # Shared OpenCode config
-├── .serena/
-│   └── project.yml         # Team-wide Serena settings
-└── .srclight/
-    └── config.yml          # Shared Srclight config
+├── opencode.json                          # Shared OpenCode config
+├── oh-my-opencode-slim.json              # Shared OMO Slim agent config
+└── .serena/
+    └── project.yml                        # Team-wide Serena settings
 ```
 
 ### Enterprise Deployment Pattern

@@ -40,41 +40,51 @@ choco install opencode
 
 ## Configuration
 
-### Connect an LLM Provider
-```bash
-# Run in OpenCode terminal
-/connect
-```
-
-Select your provider and enter API key. Recommended: OpenCode Zen (curated models).
-
 ### Environment Variables
+
 ```bash
-export ANTHROPIC_API_KEY="your-api-key"
-export OPENAI_API_KEY="your-api-key"
-export GEMINI_API_KEY="your-api-key"
+# API key for the internal inference server
+export INFERENCE_API_KEY="your-internal-key"
 ```
 
-### Configuration File (~/.config/opencode/opencode.json)
+This is the only key needed. No cloud provider keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.)
+are used — all model access goes through the internal OpenAI-compatible inference server.
+
+### Configuration File (opencode.json)
+
+Place in project root, or at `~/.config/opencode/opencode.json` for global settings:
+
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "claude-sonnet-4-5",
-  "provider": "openai",
+  "autoupdate": false,
+  "provider": {
+    "internal": {
+      "name": "Internal",
+      "api": "openai",
+      "url": "http://inference.internal/v1",
+      "options": {
+        "apiKey": "{env:INFERENCE_API_KEY}"
+      }
+    }
+  },
+  "model": "internal/Qwen3.5-397B-A17B",
+  "plugin": ["oh-my-opencode-slim@latest"],
   "mcp": {
     "serena": {
       "type": "local",
-      "command": ["uvx", "--from", "git+https://github.com/oraios/serena",
-                  "serena", "start-mcp-server",
-                  "--context", "ide-assistant", "--project", "."],
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/oraios/serena",
+               "serena", "start-mcp-server",
+               "--context", "ide-assistant", "--project", "."],
       "enabled": true
     }
   }
 }
 ```
 
-> **Air-Gap Note**: For air-gapped environments, replace `git+https://` with locally installed packages.
-> Pre-install Serena via `pip install serena` and use the local binary path instead.
+> **Air-Gap Note**: Replace `git+https://` with locally installed packages.
+> Pre-install Serena via `pip install "serena[mcp]"` and use the local binary path.
 
 ## Quick Start Workflow
 

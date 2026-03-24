@@ -17,27 +17,50 @@ exposes 29 MCP tools and supports 11 languages.
 > release is v0.15.1. Versions ≤ 0.8.1 only support Ollama and Voyage — `pip install --upgrade`
 > stays at 0.8.1 in an air-gapped environment if the internal mirror hasn't been updated.
 
+> **Known issue**: `tree-sitter-dart` is declared as a dependency of srclight 0.15.1 but is
+> not published on PyPI. Install with `--no-deps` and add all other dependencies manually.
+> The pip resolver will warn about the missing package — this is harmless. Dart indexing is
+> simply unavailable, which is irrelevant for C/C++ codebases.
+
 ### Connected Machine (pre-air-gap)
 
 ```bash
-# Download srclight 0.15.1 + all dependencies into a local directory
-pip download "srclight==0.15.1" -d ./srclight-wheels/
+# Download srclight wheel only (tree-sitter-dart is not on PyPI)
+pip download "srclight==0.15.1" --no-deps -d ./srclight-wheels/
 
-# Include extras if needed
-pip download "srclight[gpu]==0.15.1" -d ./srclight-wheels/
-pip download "srclight[docs,pdf]==0.15.1" -d ./srclight-wheels/
+# Download all required dependencies except tree-sitter-dart
+pip download \
+  click mcp numpy \
+  "tree-sitter>=0.21" \
+  tree-sitter-c tree-sitter-cpp tree-sitter-c-sharp \
+  tree-sitter-python tree-sitter-javascript tree-sitter-typescript \
+  tree-sitter-go tree-sitter-java tree-sitter-kotlin \
+  tree-sitter-rust tree-sitter-swift tree-sitter-php \
+  tree-sitter-markdown \
+  -d ./srclight-wheels/
 
-# Transfer ./srclight-wheels/ to the air-gapped machine via approved media
+# Transfer ./srclight-wheels/ to the air-gapped machine
 ```
 
 ### Air-gapped Machine
 
 ```bash
-# Install from local wheel directory
-pip install --no-index --find-links ./srclight-wheels/ "srclight==0.15.1"
+# Install srclight (no-deps to bypass tree-sitter-dart)
+pip install --no-index --find-links ./srclight-wheels/ --no-deps srclight==0.15.1
 
-# Verify
-pip show srclight   # must show Version: 0.15.1
+# Install all actual dependencies
+pip install --no-index --find-links ./srclight-wheels/ \
+  click mcp numpy \
+  tree-sitter \
+  tree-sitter-c tree-sitter-cpp tree-sitter-c-sharp \
+  tree-sitter-python tree-sitter-javascript tree-sitter-typescript \
+  tree-sitter-go tree-sitter-java tree-sitter-kotlin \
+  tree-sitter-rust tree-sitter-swift tree-sitter-php \
+  tree-sitter-markdown
+
+# Verify (pip will warn about tree-sitter-dart — expected and harmless)
+pip show srclight    # must show Version: 0.15.1
+srclight --version   # must print srclight, version 0.15.1
 ```
 
 Embeddings are provided by the internal inference server. No local model installation is required —

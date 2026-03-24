@@ -54,35 +54,54 @@ pip install 'srclight[all]'         # Everything
 
 ### Air-gapped Preparation Checklist
 
+> **Known issue**: `tree-sitter-dart` is listed as a dependency of srclight 0.15.1 but is not
+> published on PyPI. Install srclight with `--no-deps` and add all other dependencies manually.
+> Dart indexing is simply unavailable — irrelevant for C/C++ codebases.
+
 Run the following **on a connected machine** before going air-gapped:
 
 ```bash
-# 1. Download srclight 0.15.1 wheel + all dependencies into a local directory
-pip download "srclight==0.15.1" -d ./srclight-wheels/
+# 1. Download srclight wheel only (no deps — tree-sitter-dart is not on PyPI)
+pip download "srclight==0.15.1" --no-deps -d ./srclight-wheels/
 
-# 2. Optionally include GPU or docs extras
-pip download "srclight[gpu]==0.15.1" -d ./srclight-wheels/
-pip download "srclight[docs,pdf]==0.15.1" -d ./srclight-wheels/
+# 2. Download all dependencies except tree-sitter-dart
+pip download \
+  click mcp numpy \
+  "tree-sitter>=0.21" \
+  tree-sitter-c tree-sitter-cpp tree-sitter-c-sharp \
+  tree-sitter-python tree-sitter-javascript tree-sitter-typescript \
+  tree-sitter-go tree-sitter-java tree-sitter-kotlin \
+  tree-sitter-rust tree-sitter-swift tree-sitter-php \
+  tree-sitter-markdown \
+  -d ./srclight-wheels/
 
-# 3. Transfer ./srclight-wheels/ to the air-gapped machine via approved media
+# 3. Optionally include GPU or docs extras
+pip download "srclight[gpu]==0.15.1" --no-deps -d ./srclight-wheels/
+
+# 4. Transfer ./srclight-wheels/ to the air-gapped machine via approved media
 ```
 
 Then on the **air-gapped machine**:
 
 ```bash
-# 4. Install from the local wheel directory (no network access)
-pip install --no-index --find-links ./srclight-wheels/ "srclight==0.15.1"
+# 5. Install srclight + deps (ignoring tree-sitter-dart resolver warning)
+pip install --no-index --find-links ./srclight-wheels/ --no-deps srclight==0.15.1
+pip install --no-index --find-links ./srclight-wheels/ \
+  click mcp numpy \
+  tree-sitter \
+  tree-sitter-c tree-sitter-cpp tree-sitter-c-sharp \
+  tree-sitter-python tree-sitter-javascript tree-sitter-typescript \
+  tree-sitter-go tree-sitter-java tree-sitter-kotlin \
+  tree-sitter-rust tree-sitter-swift tree-sitter-php \
+  tree-sitter-markdown
 
-# Verify version
-pip show srclight   # must show Version: 0.15.1
+# Verify (resolver will warn about tree-sitter-dart — this is expected and harmless)
+pip show srclight          # must show Version: 0.15.1
+srclight --version         # must print srclight, version 0.15.1
 
-# 5. Verify the internal embedding server is reachable
+# 6. Verify the internal embedding server is reachable
 curl http://inference.internal/v1/models
 ```
-
-> **Why 0.15.1 specifically**: v0.8.1 and earlier have no OpenAI-compatible embedding provider.
-> `pip install --upgrade srclight` stays at 0.8.1 in an air-gapped environment if the internal
-> PyPI mirror only has that version cached. The wheel must be transferred manually.
 
 ## Configuration
 

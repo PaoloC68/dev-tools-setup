@@ -35,12 +35,12 @@ cd /path/to/repo
 srclight index
 
 # Index with embeddings via internal server
-INFERENCE_API_KEY=sk-xxx srclight index \
-  --embed http://inference.internal/v1 \
-  --embed-model text-embedding-gte-multilingual-base
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed text-embedding-gte-multilingual-base
 ```
 
-Replace `http://inference.internal/v1` with the actual base URL of your internal inference server.
+Replace `http://inference.internal` with the actual base URL of your internal inference server.
+`OPENAI_BASE_URL` must NOT include `/v1` — Srclight appends `/v1/embeddings` automatically.
 
 Indexing is incremental by default — only re-indexes files whose content hash changed. Re-run
 `srclight index` at any time; it will only process what has changed.
@@ -65,10 +65,8 @@ infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 79
 Index using the local server:
 
 ```bash
-srclight index \
-  --embed http://localhost:7997/v1 \
-  --embed-model text-embedding-gte-multilingual-base
-# No API key needed for local infinity-emb
+OPENAI_BASE_URL=http://localhost:7997 srclight index --embed text-embedding-gte-multilingual-base
+# No OPENAI_API_KEY needed for local infinity-emb
 ```
 
 ## Usage
@@ -78,7 +76,7 @@ srclight index \
 ```bash
 # Index
 srclight index
-srclight index --embed http://inference.internal/v1 --embed-model text-embedding-gte-multilingual-base
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index --embed text-embedding-gte-multilingual-base
 
 # Search
 srclight search "authentication flow"
@@ -102,9 +100,8 @@ srclight workspace add /path/to/repo1 -w myworkspace
 srclight workspace add /path/to/repo2 -w myworkspace
 
 # Index all repos
-srclight workspace index -w myworkspace \
-  --embed http://inference.internal/v1 \
-  --embed-model text-embedding-gte-multilingual-base
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
+  srclight workspace index -w myworkspace --embed text-embedding-gte-multilingual-base
 
 # Start MCP server (SSE — persistent, port 8742)
 srclight serve --workspace myworkspace &

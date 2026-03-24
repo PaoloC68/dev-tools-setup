@@ -79,9 +79,8 @@ cd /path/to/project
 srclight index
 
 # Index with embeddings via internal OpenAI-compatible server
-INFERENCE_API_KEY=sk-xxx srclight index \
-  --embed http://inference.internal/v1 \
-  --embed-model text-embedding-gte-multilingual-base
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed text-embedding-gte-multilingual-base
 ```
 
 Tree-sitter parses each file, extracts symbols and relationships, then the embedding server
@@ -141,9 +140,8 @@ you get hybrid search (FTS5 + semantic via RRF).
 ### Internal Server (Default for This Deployment)
 
 ```bash
-INFERENCE_API_KEY=sk-xxx srclight index \
-  --embed http://inference.internal/v1 \
-  --embed-model text-embedding-gte-multilingual-base
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed text-embedding-gte-multilingual-base
 ```
 
 ### Local Fallback: infinity-emb
@@ -167,10 +165,8 @@ infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 79
 **Index using the local server:**
 
 ```bash
-srclight index \
-  --embed http://localhost:7997/v1 \
-  --embed-model text-embedding-gte-multilingual-base
-# No API key needed for local infinity-emb
+OPENAI_BASE_URL=http://localhost:7997 srclight index --embed text-embedding-gte-multilingual-base
+# No OPENAI_API_KEY needed for local infinity-emb
 ```
 
 ### Embedding Backend Comparison
@@ -193,9 +189,8 @@ srclight workspace add /path/to/repo1 -w myworkspace
 srclight workspace add /path/to/repo2 -w myworkspace
 
 # Index all repos with embeddings
-srclight workspace index -w myworkspace \
-  --embed http://inference.internal/v1 \
-  --embed-model text-embedding-gte-multilingual-base
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
+  srclight workspace index -w myworkspace --embed text-embedding-gte-multilingual-base
 
 # Start MCP server in workspace mode
 srclight serve --workspace myworkspace
@@ -367,9 +362,8 @@ curl http://inference.internal/v1/models
 Re-index specifying the correct server:
 
 ```bash
-INFERENCE_API_KEY=sk-xxx srclight index \
-  --embed http://inference.internal/v1 \
-  --embed-model text-embedding-gte-multilingual-base
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed text-embedding-gte-multilingual-base
 ```
 
 ### "Semantic search returns no results"

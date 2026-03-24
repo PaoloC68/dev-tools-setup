@@ -84,9 +84,8 @@ Place in project root, or at `~/.config/opencode/opencode.json` for global setti
       "command": ["srclight", "serve"],
       "enabled": true,
       "environment": {
-        "SRCLIGHT_EMBED_URL": "http://inference.internal/v1",
-        "SRCLIGHT_EMBED_MODEL": "text-embedding-gte-multilingual-base",
-        "SRCLIGHT_EMBED_API_KEY": "{env:INFERENCE_API_KEY}"
+        "OPENAI_API_KEY": "{env:INFERENCE_API_KEY}",
+        "OPENAI_BASE_URL": "http://inference.internal"
       }
     },
     "memora": {
@@ -104,14 +103,13 @@ Place in project root, or at `~/.config/opencode/opencode.json` for global setti
 }
 ```
 
-> **Note on Srclight embedding env vars**: `SRCLIGHT_EMBED_URL`, `SRCLIGHT_EMBED_MODEL`, and
-> `SRCLIGHT_EMBED_API_KEY` are passed to the running server so that the `reindex()` MCP tool
-> can re-index with the correct embedding backend. The same values must match what was used
-> at initial index time:
+> **Note on Srclight embedding env vars**: `OPENAI_API_KEY` and `OPENAI_BASE_URL` are the
+> actual variable names read by Srclight's OpenAI-compatible provider (verified in source).
+> They are passed to the running server so the `reindex()` MCP tool can re-embed with the
+> correct backend. The same values must be set at initial index time:
 > ```bash
-> INFERENCE_API_KEY=your-key srclight index \
->   --embed http://inference.internal/v1 \
->   --embed-model text-embedding-gte-multilingual-base
+> OPENAI_API_KEY=your-key OPENAI_BASE_URL=http://inference.internal \
+>   srclight index --embed text-embedding-gte-multilingual-base
 > ```
 
 > **Air-Gap Note**: Replace `git+https://` with locally installed packages.

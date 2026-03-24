@@ -35,12 +35,27 @@ cd /path/to/repo
 srclight index
 
 # Index with embeddings via internal server
+# Model names starting with "text-embedding" are auto-detected as OpenAI-compatible:
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
   --embed text-embedding-gte-multilingual-base
+
+# For other model names, use the "openai:" prefix to force OpenAI-compatible provider:
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed openai:qwen3-embedding-8b
 ```
 
 Replace `http://inference.internal` with the actual base URL of your internal inference server.
 `OPENAI_BASE_URL` must NOT include `/v1` — Srclight appends `/v1/embeddings` automatically.
+
+**Provider auto-detection** (from Srclight source — `embeddings.py`):
+
+| Model name | Provider selected |
+|------------|-------------------|
+| starts with `text-embedding` | OpenAI-compatible |
+| starts with `voyage` | Voyage AI |
+| starts with `embed-v3` or `embed-v4` | Cohere |
+| `openai:<model>` prefix | OpenAI-compatible (forced) |
+| anything else | Ollama ← **will fail if Ollama not running** |
 
 Indexing is incremental by default — only re-indexes files whose content hash changed. Re-run
 `srclight index` at any time; it will only process what has changed.

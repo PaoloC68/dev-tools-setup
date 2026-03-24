@@ -79,8 +79,14 @@ cd /path/to/project
 srclight index
 
 # Index with embeddings via internal OpenAI-compatible server
+# Model names starting with "text-embedding" are auto-detected as OpenAI-compatible:
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
   --embed text-embedding-gte-multilingual-base
+
+# For other model names (e.g. qwen3-embedding-8b), use the "openai:" prefix to
+# force OpenAI-compatible provider — otherwise Srclight defaults to Ollama:
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+  --embed openai:qwen3-embedding-8b
 ```
 
 Tree-sitter parses each file, extracts symbols and relationships, then the embedding server
@@ -143,6 +149,16 @@ you get hybrid search (FTS5 + semantic via RRF).
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
   --embed text-embedding-gte-multilingual-base
 ```
+
+> **Model name routing**: Srclight selects the embedding provider based on the model name
+> prefix. Only names starting with `text-embedding` are auto-detected as OpenAI-compatible.
+> For any other model name (e.g. `qwen3-embedding-8b`, `gte-large`), use the `openai:` prefix
+> to force the correct provider:
+> ```bash
+> OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
+>   --embed openai:qwen3-embedding-8b
+> ```
+> Without the prefix, Srclight falls back to Ollama and the indexing fails.
 
 ### Local Fallback: infinity-emb
 

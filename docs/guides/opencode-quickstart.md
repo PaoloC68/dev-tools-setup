@@ -88,6 +88,9 @@ Place in project root, or at `~/.config/opencode/opencode.json` for global setti
         "OPENAI_BASE_URL": "http://inference.internal"
       }
     },
+    // Note: OPENAI_BASE_URL must NOT include /v1 — Srclight appends /v1/embeddings itself.
+    // Model names not starting with "text-embedding" need the "openai:" prefix at index time:
+    //   srclight index --embed openai:qwen3-embedding-8b
     "memora": {
       "type": "local",
       "command": ["memora-server"],

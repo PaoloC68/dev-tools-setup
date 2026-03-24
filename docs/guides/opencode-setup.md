@@ -63,40 +63,50 @@ OMO Slim's own agent configuration lives in `~/.config/opencode/oh-my-opencode-s
 {
   "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
 
-  // Use a named preset
-  "preset": "internal",
+  "preset": "airgap",
 
   "presets": {
-    "internal": {
-      "orchestrator": { "model": "internal/your-llm-model", "skills": ["*"], "mcps": ["websearch"] },
-      "oracle":       { "model": "internal/your-llm-model", "skills": [], "mcps": [] },
-      "librarian":    { "model": "internal/your-fast-model", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
-      "explorer":     { "model": "internal/your-fast-model", "skills": [], "mcps": [] },
-      "designer":     { "model": "internal/your-llm-model", "skills": ["agent-browser"], "mcps": [] },
-      "fixer":        { "model": "internal/your-fast-model", "skills": [], "mcps": [] }
+    "airgap": {
+      // Tier 1: Best reasoning (orchestration, review, planning)
+      "orchestrator": { "model": "Qwen3.5-397B-A17B",         "skills": ["*"], "mcps": [] },
+      "oracle":       { "model": "Qwen3.5-397B-A17B",         "skills": [], "mcps": [] },
+
+      // Tier 2: Fast (recon and retrieval)
+      "explorer":     { "model": "qwen3-coder-next",           "skills": [], "mcps": [] },
+      "librarian":    { "model": "Qwen3-30B-A3B-Instruct-2507","skills": [], "mcps": [] },
+
+      // Tier 3: Balanced (implementation and design)
+      "designer":     { "model": "Kimi-K2.5-NoReasoning",     "skills": [], "mcps": [] },
+      "fixer":        { "model": "gpt-oss-120b-thinking-low",  "skills": [], "mcps": [] }
     }
-  }
+  },
+
+  // Disable all outbound MCPs (air-gapped environment)
+  "disabled_mcps": ["websearch", "context7", "grep_app"]
 }
 ```
 
-Replace `internal/your-llm-model` and `internal/your-fast-model` with the actual model IDs
-served by your internal inference server.
-
-For local-only fallback configuration examples, see the
-[OMO Slim Air-Gap Analysis](../research/omo-slim-airgap-analysis.md).
+Model IDs must match exactly what your internal inference server exposes. See
+[Model-Agent Mapping](../research/model-agent-mapping.md) for rationale and alternative
+configurations (throughput-optimized, maximum context).
 
 ### Specialized Agents
 
 OMO Slim ships six agents. These are the actual agent identifiers used in configuration:
 
-| Agent | Default Model | Role |
-|-------|---------------|------|
-| `orchestrator` | `openai/gpt-5.4` | Master delegator and strategic coordinator. Determines optimal path to any goal. |
-| `oracle` | `openai/gpt-5.4` | Strategic advisor and debugger of last resort. Read-only consultation. |
-| `librarian` | `openai/gpt-5.4-mini` | External knowledge retrieval. Docs, OSS examples, GitHub search. |
-| `explorer` | `openai/gpt-5.4-mini` | Codebase reconnaissance. Fast, parallel, read-only. |
-| `designer` | `kimi-for-coding/k2p5` | UI/UX implementation and visual excellence. |
-| `fixer` | `openai/gpt-5.4-mini` | Fast implementation specialist. Bug fixes, single-file changes. |
+> **Note**: The OMO Slim installer generates OpenAI defaults (`openai/gpt-5.4`, etc.) which
+> are unavailable in this air-gapped deployment. Always override with models from the internal
+> inference server. See [Model-Agent Mapping](../research/model-agent-mapping.md) for the
+> full recommended configuration.
+
+| Agent | Role | Recommended Model |
+|-------|------|-------------------|
+| `orchestrator` | Master delegator and strategic coordinator | `Qwen3.5-397B-A17B` |
+| `oracle` | Strategic advisor and debugger of last resort. Read-only. | `Qwen3.5-397B-A17B` |
+| `librarian` | External knowledge retrieval. Docs, OSS examples, search. | `Qwen3-30B-A3B-Instruct-2507` |
+| `explorer` | Codebase reconnaissance. Fast, parallel, read-only. | `qwen3-coder-next` |
+| `designer` | UI/UX implementation and visual excellence. | `Kimi-K2.5-NoReasoning` |
+| `fixer` | Fast implementation specialist. Bug fixes, single-file changes. | `gpt-oss-120b-thinking-low` |
 
 ### Pre-configured MCPs
 

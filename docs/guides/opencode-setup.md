@@ -118,11 +118,12 @@ OMO Slim includes three MCP servers out of the box. Each agent has a default all
 | `context7` | `https://mcp.context7.com/mcp` | `librarian` |
 | `grep_app` | `https://mcp.grep.app` | `librarian` |
 
-> **Air-Gap Warning**: All three MCPs make outbound network calls. Disable them for air-gapped
-> deployments by adding to your config:
+> **Air-Gap Warning**: All three MCPs make outbound network calls. Disable them in
+> `oh-my-opencode-slim.json` (the OMO Slim config, not `opencode.json`):
 > ```json
 > { "disabled_mcps": ["websearch", "context7", "grep_app"] }
 > ```
+> This is already included in the full config example above.
 
 ### Task Categories
 

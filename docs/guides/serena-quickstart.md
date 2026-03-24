@@ -7,7 +7,7 @@
 ### Key Features
 
 - **Symbol-Level Understanding**: Knows where every function, class, and variable is defined
-- **30+ Languages**: Python, TypeScript, JavaScript, Go, Rust, C/C++, Java, and more
+- **40+ Languages**: Python, TypeScript, JavaScript, Go, Rust, C/C++, Java, and more
 - **100% Offline**: Works with local LLMs, no cloud dependency
 - **IDE Integration**: Claude Desktop, VSCode, Cursor, OpenCode, IntelliJ, Cline
 - **Token Efficient**: ~70% savings vs text-based RAG
@@ -35,22 +35,6 @@ pip install "serena[mcp]"
 pip install "serena[all]"
 ```
 
-### NPX
-
-```bash
-npx -y @oraios/serena --version
-```
-
-> **Air-Gap Warning**: `npx -y` always downloads from the npm registry.
-> For air-gapped environments, pre-install globally: `npm install -g @oraios/serena`
-> or use pip/uvx with pre-downloaded packages.
-
-### Docker (Experimental)
-
-```bash
-docker run -it -v $(pwd):/workspace oraios/serena
-```
-
 ## Configuration
 
 ### Claude Desktop
@@ -73,17 +57,19 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-### OpenCode
+### OpenCode / Claude Code
 
-Add to `~/.opencode.json`:
+Add to `opencode.json` (project root) or `~/.config/opencode/opencode.json` (global):
 
 ```json
 {
+  "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "serena": {
       "type": "local",
-      "command": [
-        "uvx", "--from", "git+https://github.com/oraios/serena",
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/oraios/serena",
         "serena", "start-mcp-server",
         "--context", "ide-assistant",
         "--project", "."
@@ -100,8 +86,10 @@ Add to `~/.opencode.json`:
 {
   "mcp": {
     "serena": {
-      "command": [
-        "uvx", "--from", "git+https://github.com/oraios/serena",
+      "type": "local",
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/oraios/serena",
         "serena", "start-mcp-server",
         "--context", "ide-assistant",
         "--project", "/path/to/your/project"
@@ -117,11 +105,10 @@ Add to `~/.opencode.json`:
 ### Onboarding Workflow
 
 1. Install and start the Serena MCP server (see Installation above)
-2. Connect a client (Claude Desktop, OpenCode, Cursor)
+2. Connect a client (Claude Code, Claude Desktop, Cursor, OpenCode)
 3. Prompt: `Activate the project at /path/to/project`
 4. Serena analyzes structure, indexes symbols, builds dependency graph
 5. Creates `.serena/project.yml` and `.serena/memories/`
-6. Verify: dashboard at `http://localhost:24282/dashboard/`
 
 ### Configuration (.serena/project.yml)
 
@@ -408,28 +395,8 @@ Activate the project at /absolute/path/to/your/project
 - **Pre-index nightly** for large repos to avoid cold-start delays.
 - **Version control `.serena/project.yml`** for team consistency. Keep `.serena/memories/` in `.gitignore`.
 
-## Integration with Other Tools
-
-### Agno Framework
-
-```python
-from agno import Agent
-from serena import SerenaTools
-
-agent = Agent(tools=SerenaTools())
-```
-
-### Custom Framework
-
-```python
-from serena import Serena
-
-serena = Serena(project_path="/path/to/project")
-result = serena.find_symbol("my_function")
-```
-
 ## Next Steps
 
 - Read the [Architecture Overview](../architecture/overview.md)
 - Set up [OpenCode](./opencode-quickstart.md) for orchestration
-- Configure [Local Embeddings](./srclight-setup.md) for semantic search
+- Configure [Srclight](./srclight-quickstart.md) for semantic code search

@@ -43,12 +43,13 @@ choco install opencode
 ### Environment Variables
 
 ```bash
-# API key for the internal inference server
 export INFERENCE_API_KEY="your-internal-key"
 ```
 
 This is the only key needed. No cloud provider keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.)
 are used — all model access goes through the internal OpenAI-compatible inference server.
+
+The `{env:INFERENCE_API_KEY}` syntax in `opencode.json` reads this variable at runtime.
 
 ### Configuration File (opencode.json)
 
@@ -73,15 +74,45 @@ Place in project root, or at `~/.config/opencode/opencode.json` for global setti
   "mcp": {
     "serena": {
       "type": "local",
-      "command": "uvx",
-      "args": ["--from", "git+https://github.com/oraios/serena",
-               "serena", "start-mcp-server",
-               "--context", "ide-assistant", "--project", "."],
+      "command": ["uvx", "--from", "git+https://github.com/oraios/serena",
+                  "serena", "start-mcp-server",
+                  "--context", "ide-assistant", "--project", "."],
       "enabled": true
+    },
+    "srclight": {
+      "type": "local",
+      "command": ["srclight", "serve"],
+      "enabled": true,
+      "environment": {
+        "SRCLIGHT_EMBED_URL": "http://inference.internal/v1",
+        "SRCLIGHT_EMBED_MODEL": "text-embedding-gte-multilingual-base",
+        "SRCLIGHT_EMBED_API_KEY": "{env:INFERENCE_API_KEY}"
+      }
+    },
+    "memora": {
+      "type": "local",
+      "command": ["memora-server"],
+      "enabled": true,
+      "environment": {
+        "MEMORA_DB_PATH": "~/.local/share/memora/memories.db",
+        "MEMORA_EMBEDDING_MODEL": "sentence-transformers",
+        "MEMORA_LLM_ENABLED": "false",
+        "MEMORA_ALLOW_ANY_TAG": "1"
+      }
     }
   }
 }
 ```
+
+> **Note on Srclight embedding env vars**: `SRCLIGHT_EMBED_URL`, `SRCLIGHT_EMBED_MODEL`, and
+> `SRCLIGHT_EMBED_API_KEY` are passed to the running server so that the `reindex()` MCP tool
+> can re-index with the correct embedding backend. The same values must match what was used
+> at initial index time:
+> ```bash
+> INFERENCE_API_KEY=your-key srclight index \
+>   --embed http://inference.internal/v1 \
+>   --embed-model text-embedding-gte-multilingual-base
+> ```
 
 > **Air-Gap Note**: Replace `git+https://` with locally installed packages.
 > Pre-install Serena via `pip install "serena[mcp]"` and use the local binary path.

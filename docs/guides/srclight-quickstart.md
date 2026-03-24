@@ -70,6 +70,7 @@ embeddings:
   provider: openai-compatible
   base_url: http://inference.internal/v1
   model: text-embedding-gte-multilingual-base
+  api_key: ${INFERENCE_API_KEY}   # LiteLLM or internal server key
 
 indexing:
   batch_size: 100
@@ -123,6 +124,7 @@ embeddings:
   provider: openai-compatible
   base_url: http://localhost:7997/v1
   model: text-embedding-gte-multilingual-base
+  # api_key not required for local infinity-emb
 ```
 
 **Comparison of embedding backends:**

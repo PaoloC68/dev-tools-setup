@@ -138,7 +138,17 @@ project-root/
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "anthropic/claude-sonnet-4-5",
+  "provider": {
+    "internal": {
+      "name": "Internal",
+      "api": "openai",
+      "url": "http://inference.internal/v1",
+      "options": {
+        "apiKey": "{env:INFERENCE_API_KEY}"
+      }
+    }
+  },
+  "model": "internal/your-llm-model",
   "plugin": ["oh-my-opencode-slim@latest"],
   "autoupdate": false,
   "mcp": {

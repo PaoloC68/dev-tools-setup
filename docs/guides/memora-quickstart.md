@@ -83,17 +83,25 @@ Add to `.mcp.json` in your project root:
 
 ### Environment Variables Reference
 
-| Variable | Description | Air-Gap Value |
-|----------|-------------|---------------|
-| `MEMORA_DB_PATH` | SQLite database path | `~/.local/share/memora/memories.db` |
-| `MEMORA_EMBEDDING_MODEL` | Embedding backend: `openai`, `sentence-transformers`, `tfidf` | `sentence-transformers` |
-| `SENTENCE_TRANSFORMERS_MODEL` | Model for sentence-transformers | `all-MiniLM-L6-v2` (default) |
-| `MEMORA_ALLOW_ANY_TAG` | Allow any tag without allowlist validation | `1` |
-| `MEMORA_TAG_FILE` | Path to file with allowed tags (one per line) | — |
-| `MEMORA_GRAPH_PORT` | Port for knowledge graph visualization server | `8765` |
-| `MEMORA_LLM_ENABLED` | Enable LLM-powered deduplication | `false` (air-gap) |
-| `MEMORA_STORAGE_URI` | Cloud storage URI — **MUST NOT be set** for air-gap | unset |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare D1 access — **MUST NOT be set** for air-gap | unset |
+| Variable | Description | Default | Air-Gap Value |
+|----------|-------------|---------|---------------|
+| `MEMORA_DB_PATH` | SQLite database path | `~/.local/share/memora/memories.db` | (same) |
+| `MEMORA_EMBEDDING_MODEL` | Embedding backend: `openai`, `sentence-transformers`, `tfidf` | `openai` | `sentence-transformers` |
+| `SENTENCE_TRANSFORMERS_MODEL` | Model for sentence-transformers | `all-MiniLM-L6-v2` | (same) |
+| `OPENAI_API_KEY` | API key for OpenAI embeddings and LLM deduplication | — | unset |
+| `OPENAI_BASE_URL` | Base URL for OpenAI-compatible APIs (LiteLLM, Azure, OpenRouter, etc.) | — | set if using internal server with `openai` backend |
+| `OPENAI_EMBEDDING_MODEL` | OpenAI embedding model | `text-embedding-3-small` | — |
+| `MEMORA_LLM_ENABLED` | Enable LLM-powered deduplication | `true` | **`false`** (requires OpenAI API) |
+| `MEMORA_LLM_MODEL` | Model for deduplication comparison | `gpt-4o-mini` | — |
+| `MEMORA_ALLOW_ANY_TAG` | Allow any tag without allowlist validation | — | `1` |
+| `MEMORA_TAG_FILE` | Path to file with allowed tags (one per line) | — | — |
+| `MEMORA_TAGS` | Comma-separated list of allowed tags | — | — |
+| `MEMORA_GRAPH_PORT` | Port for knowledge graph visualization server | `8765` | `8765` |
+| `MEMORA_CACHE_DIR` | Local cache directory for cloud-synced database | — | — |
+| `MEMORA_STORAGE_URI` | Cloud storage URI — **MUST NOT be set** for air-gap | unset | unset |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare D1 access — **MUST NOT be set** for air-gap | unset | unset |
+| `MEMORA_CLOUD_ENCRYPT` | Encrypt database before cloud upload | — | unset |
+| `MEMORA_CLOUD_COMPRESS` | Compress database before cloud upload | — | unset |
 
 ### Security Configuration
 
@@ -298,10 +306,24 @@ Memora:
 |---------|---------|---------|---------|-------|
 | `sentence-transformers` | `memora[local]` | Good | Yes | Recommended for air-gap |
 | `tfidf` | Included | Basic | Yes | No model download needed |
-| `openai` | Included | High | No | Requires `OPENAI_API_KEY` |
+| `openai` | Included | High | Depends | Requires `OPENAI_API_KEY`; point at internal server via `OPENAI_BASE_URL` |
 
 For air-gapped deployments, use `sentence-transformers`. The `tfidf` backend requires no model
 download and works immediately but provides keyword-only matching without semantic understanding.
+
+The `openai` backend can also target an internal OpenAI-compatible server (e.g. LiteLLM) by
+setting `OPENAI_BASE_URL` and `OPENAI_API_KEY`:
+
+```json
+{
+  "env": {
+    "MEMORA_EMBEDDING_MODEL": "openai",
+    "OPENAI_BASE_URL": "http://inference.internal/v1",
+    "OPENAI_API_KEY": "sk-your-key",
+    "OPENAI_EMBEDDING_MODEL": "text-embedding-gte-multilingual-base"
+  }
+}
+```
 
 **Switching backends** requires rebuilding embeddings:
 

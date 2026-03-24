@@ -241,8 +241,8 @@ The persistence layer stores decisions, insights, and context across sessions so
 
 | Advantage | Detail |
 |-----------|--------|
-| **Pure SQLite, zero dependencies** | Single file, `pip install memora`, done. Mem0 OSS defaults to Qdrant (vector DB) + OpenAI (LLM + embeddings) + SQLite (history only). |
-| **Local embeddings out of the box** | `pip install memora[embeddings]` adds sentence-transformers with no API key. Mem0 defaults to OpenAI embeddings (requires `OPENAI_API_KEY`). |
+| **Pure SQLite, zero dependencies** | Single file, `pip install memora-mcp`, done. Mem0 OSS defaults to Qdrant (vector DB) + OpenAI (LLM + embeddings) + SQLite (history only). |
+| **Local embeddings out of the box** | `pip install memora-mcp[embeddings]` adds sentence-transformers with no API key. Mem0 defaults to OpenAI embeddings (requires `OPENAI_API_KEY`). |
 | **Native FTS5 keyword search** | SQLite FTS5 built-in alongside semantic search. Mem0 is semantic-first with no keyword fallback — exact matches can miss. |
 | **Built-in Graph UI** | Browser-based knowledge graph visualization, timeline panel, chat panel with RAG, mermaid rendering. Mem0 OSS has no UI. |
 | **Cloud sync as future option** | S3, R2, D1 available if air-gap requirements change. Disabled by default; risk is manageable via env var audit. |

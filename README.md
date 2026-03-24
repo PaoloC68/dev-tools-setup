@@ -95,7 +95,7 @@ bunx oh-my-opencode-slim@latest install
 # 3. Install MCP servers
 pip install "serena[mcp]"
 pip install srclight
-pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
+pip install "memora-mcp[local] @ git+https://github.com/agentic-box/memora.git"
 
 # 4. Verify internal inference server is reachable
 curl http://inference.internal/v1/models

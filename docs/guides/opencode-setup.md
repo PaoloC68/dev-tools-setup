@@ -16,7 +16,7 @@ curl -fsSL https://opencode.ai/install | bash
 # Install MCP server dependencies (pre-download for air-gapped)
 pip install "serena[mcp]"
 pip install srclight
-pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
+pip install "memora-mcp[local] @ git+https://github.com/agentic-box/memora.git"
 
 # Language servers (for C/C++)
 apt-get install clangd  # or ccls

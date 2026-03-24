@@ -24,7 +24,7 @@ locally and makes it searchable across sessions.
 ### Base Install
 
 ```bash
-pip install git+https://github.com/agentic-box/memora.git
+pip install "memora-mcp @ git+https://github.com/agentic-box/memora.git"
 ```
 
 Includes cloud storage (S3/R2) and OpenAI embeddings. For air-gapped deployments, install the local
@@ -34,17 +34,17 @@ extras instead:
 
 ```bash
 # Includes sentence-transformers for fully offline embeddings (~2GB for PyTorch)
-pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
+pip install "memora-mcp[local] @ git+https://github.com/agentic-box/memora.git"
 ```
 
 > **Air-Gap Warning**: The base install defaults to OpenAI embeddings, which require a network call.
-> Always use `memora[local]` for air-gapped environments.
+> Always use `memora-mcp[local]` for air-gapped environments.
 
 ### Air-Gapped Preparation Checklist
 
 ```bash
 # 1. Install with local extras while online
-pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
+pip install "memora-mcp[local] @ git+https://github.com/agentic-box/memora.git"
 
 # 2. Pre-download the sentence-transformers model
 python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
@@ -304,7 +304,7 @@ Memora:
 
 | Backend | Install | Quality | Offline | Notes |
 |---------|---------|---------|---------|-------|
-| `sentence-transformers` | `memora[local]` | Good | Yes | Recommended for air-gap |
+| `sentence-transformers` | `memora-mcp[local]` | Good | Yes | Recommended for air-gap |
 | `tfidf` | Included | Basic | Yes | No model download needed |
 | `openai` | Included | High | Depends | Requires `OPENAI_API_KEY`; point at internal server via `OPENAI_BASE_URL` |
 
@@ -356,7 +356,7 @@ pip show memora
 which memora-server
 
 # Reinstall
-pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
+pip install "memora-mcp[local] @ git+https://github.com/agentic-box/memora.git"
 ```
 
 ### "OpenAI API error" or network calls on startup
@@ -373,7 +373,7 @@ export MEMORA_EMBEDDING_MODEL=sentence-transformers
 
 ```bash
 # Install local extras
-pip install "memora[local] @ git+https://github.com/agentic-box/memora.git"
+pip install "memora-mcp[local] @ git+https://github.com/agentic-box/memora.git"
 ```
 
 ### "Graph server not accessible"

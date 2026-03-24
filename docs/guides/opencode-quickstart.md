@@ -84,13 +84,12 @@ Place in project root, or at `~/.config/opencode/opencode.json` for global setti
       "command": ["srclight", "serve"],
       "enabled": true,
       "environment": {
-        "OPENAI_API_KEY": "{env:INFERENCE_API_KEY}",
-        "OPENAI_BASE_URL": "http://inference.internal"
+        "OPENAI_API_KEY": "{env:INFERENCE_API_KEY}"
       }
     },
-    // Note: OPENAI_BASE_URL must NOT include /v1 — Srclight appends /v1/embeddings itself.
-    // Model names not starting with "text-embedding" need the "openai:" prefix at index time:
-    //   srclight index --embed openai:qwen3-embedding-8b
+    // Note: indexing is done via CLI before starting the server:
+    //   OPENAI_API_KEY=sk-xxx srclight index \
+    //     --embed http://inference.internal/v1 --embed-model qwen3-embedding-8b
     "memora": {
       "type": "local",
       "command": ["memora-server"],
@@ -106,13 +105,11 @@ Place in project root, or at `~/.config/opencode/opencode.json` for global setti
 }
 ```
 
-> **Note on Srclight embedding env vars**: `OPENAI_API_KEY` and `OPENAI_BASE_URL` are the
-> actual variable names read by Srclight's OpenAI-compatible provider (verified in source).
-> They are passed to the running server so the `reindex()` MCP tool can re-embed with the
-> correct backend. The same values must be set at initial index time:
+> **Note on Srclight embeddings**: `OPENAI_API_KEY` is passed to the running server so the
+> `reindex()` MCP tool can re-embed. Initial indexing uses the `--embed` URL flag:
 > ```bash
-> OPENAI_API_KEY=your-key OPENAI_BASE_URL=http://inference.internal \
->   srclight index --embed qwen3-embedding-8b
+> OPENAI_API_KEY=your-key srclight index \
+>   --embed http://inference.internal/v1 --embed-model qwen3-embedding-8b
 > ```
 
 > **Air-Gap Note**: Replace `git+https://` with locally installed packages.

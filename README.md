@@ -59,7 +59,7 @@ For the detailed analysis, see [Why Orchestration](docs/research/orchestration-v
 | **[OpenCode](https://opencode.ai)** | Base Agent | Terminal AI coding assistant. Plugin system, MCP support, multi-provider. |
 | **[Oh-My-OpenCode-Slim](https://github.com/alvinunreal/oh-my-opencode-slim)** | Orchestration Plugin | Transforms OpenCode into a multi-agent system. 7 specialized agents, model routing, background tasks, lifecycle hooks. |
 | **[Serena](docs/guides/serena-quickstart.md)** | Symbolic MCP Server | LSP-based code navigation via clangd/ccls. 30+ languages, 13 tools. |
-| **[Srclight](docs/guides/srclight-quickstart.md)** | Semantic MCP Server | Hybrid search: FTS5 trigram + embeddings via RRF. 25 tools, 7 languages. |
+| **[Srclight](docs/guides/srclight-quickstart.md)** | Semantic MCP Server | Hybrid search: FTS5 trigram + embeddings via RRF. 29 tools, 11 languages. |
 | **[Memora](docs/guides/memora-config.md)** | Persistence MCP Server | Cross-session context, SQLite backend. Cloud sync DISABLED for air-gap. |
 
 ## Why Oh-My-OpenCode-Slim
@@ -129,8 +129,8 @@ opencode
 | [OpenCode Quickstart](docs/guides/opencode-quickstart.md) | Install OpenCode and Oh-My-OpenCode-Slim plugin |
 | [OpenCode Setup](docs/guides/opencode-setup.md) | Plugin config, agent model routing, enterprise deployment |
 | [Serena Quickstart](docs/guides/serena-quickstart.md) | LSP-based symbolic navigation, 13 tools, C/C++ setup |
-| [Srclight Quickstart](docs/guides/srclight-quickstart.md) | Hybrid code search, 25 MCP tools, tree-sitter, 7 languages |
-| [Srclight Setup](docs/guides/srclight-setup.md) | Installation, Ollama config, multi-repo workspaces |
+| [Srclight Quickstart](docs/guides/srclight-quickstart.md) | Hybrid code search, 29 MCP tools, tree-sitter, 11 languages |
+| [Srclight Setup](docs/guides/srclight-setup.md) | Installation, embedding config, multi-repo workspaces |
 | [Memora Configuration](docs/guides/memora-config.md) | Persistence layer, air-gap compliance, security config |
 
 ### Research

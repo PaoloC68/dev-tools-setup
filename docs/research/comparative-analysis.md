@@ -163,10 +163,10 @@ The semantic layer enables natural-language code search — finding code by mean
 | License | MIT |
 | Stars | ~17 (very new) |
 | Search | Hybrid (FTS5 trigram + semantic embeddings via RRF) |
-| Parsing | tree-sitter (7 languages) |
+| Parsing | tree-sitter (11 languages) |
 | Embeddings | Internal OpenAI-compatible server (`text-embedding-gte-multilingual-base`) |
 | Database | SQLite |
-| MCP Tools | 25 |
+| MCP Tools | 29 |
 | Air-gap | Yes (internal inference server) |
 
 ### Alternatives

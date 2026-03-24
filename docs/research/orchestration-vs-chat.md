@@ -60,7 +60,7 @@ A single chat agent connected to MCP tools attempts to be planner, implementer, 
 
 With 50+ MCP tools available, the agent must choose the right tool for each step. Research shows error rates in tool selection rise 15-25% beyond 20-30 available tools, due to description noise and choice overload.
 
-In practice: an agent with Serena (13 tools) + Srclight (25 tools) + Memora (4 tools) + built-in tools (12) = **54 tools**. The tool descriptions alone consume ~24k tokens, and the agent frequently selects suboptimal tools or hallucinates tool calls that don't exist.
+In practice: an agent with Serena (13 tools) + Srclight (29 tools) + Memora (4 tools) + built-in tools (12) = **58 tools**. The tool descriptions alone consume ~24k tokens, and the agent frequently selects suboptimal tools or hallucinates tool calls that don't exist.
 
 ### 2.2 Task Switching Cost
 

@@ -37,7 +37,7 @@ srclight index
 # Index with embeddings via internal server
 # Model names starting with "text-embedding" are auto-detected as OpenAI-compatible:
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
-  --embed text-embedding-gte-multilingual-base
+  --embed openai:text-embedding-gte-multilingual-base
 
 # For other model names, use the "openai:" prefix to force OpenAI-compatible provider:
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
@@ -54,8 +54,11 @@ Replace `http://inference.internal` with the actual base URL of your internal in
 | starts with `text-embedding` | OpenAI-compatible |
 | starts with `voyage` | Voyage AI |
 | starts with `embed-v3` or `embed-v4` | Cohere |
-| `openai:<model>` prefix | OpenAI-compatible (forced) |
+| `openai:<model>` prefix | OpenAI-compatible (explicit) |
 | anything else | Ollama ← **will fail if Ollama not running** |
+
+Using `openai:` prefix explicitly (as shown above) is safer than relying on auto-detection —
+it works regardless of the model name and makes the intent unambiguous.
 
 Indexing is incremental by default — only re-indexes files whose content hash changed. Re-run
 `srclight index` at any time; it will only process what has changed.
@@ -80,7 +83,7 @@ infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 79
 Index using the local server:
 
 ```bash
-OPENAI_BASE_URL=http://localhost:7997 srclight index --embed text-embedding-gte-multilingual-base
+OPENAI_BASE_URL=http://localhost:7997 srclight index --embed openai:text-embedding-gte-multilingual-base
 # No OPENAI_API_KEY needed for local infinity-emb
 ```
 
@@ -91,7 +94,7 @@ OPENAI_BASE_URL=http://localhost:7997 srclight index --embed text-embedding-gte-
 ```bash
 # Index
 srclight index
-OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index --embed text-embedding-gte-multilingual-base
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index --embed openai:text-embedding-gte-multilingual-base
 
 # Search
 srclight search "authentication flow"
@@ -116,7 +119,7 @@ srclight workspace add /path/to/repo2 -w myworkspace
 
 # Index all repos
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
-  srclight workspace index -w myworkspace --embed text-embedding-gte-multilingual-base
+  srclight workspace index -w myworkspace --embed openai:text-embedding-gte-multilingual-base
 
 # Start MCP server (SSE — persistent, port 8742)
 srclight serve --workspace myworkspace &

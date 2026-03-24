@@ -104,7 +104,8 @@ curl http://inference.internal/v1/models
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -B build .
 
 # 6. Index your codebase
-srclight index /path/to/repo --embed qwen3-embedding
+OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
+  srclight index --embed openai:qwen3-embedding-8b
 
 # 7. Start MCP servers and launch
 srclight serve --workspace default &

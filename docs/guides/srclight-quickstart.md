@@ -81,7 +81,7 @@ srclight index
 # Index with embeddings via internal OpenAI-compatible server
 # Model names starting with "text-embedding" are auto-detected as OpenAI-compatible:
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
-  --embed text-embedding-gte-multilingual-base
+  --embed openai:text-embedding-gte-multilingual-base
 
 # For other model names (e.g. qwen3-embedding-8b), use the "openai:" prefix to
 # force OpenAI-compatible provider — otherwise Srclight defaults to Ollama:
@@ -147,7 +147,7 @@ you get hybrid search (FTS5 + semantic via RRF).
 
 ```bash
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
-  --embed text-embedding-gte-multilingual-base
+  --embed openai:text-embedding-gte-multilingual-base
 ```
 
 > **Model name routing**: Srclight selects the embedding provider based on the model name
@@ -181,7 +181,7 @@ infinity_emb v2 --model-name-or-path Alibaba-NLP/gte-multilingual-base --port 79
 **Index using the local server:**
 
 ```bash
-OPENAI_BASE_URL=http://localhost:7997 srclight index --embed text-embedding-gte-multilingual-base
+OPENAI_BASE_URL=http://localhost:7997 srclight index --embed openai:text-embedding-gte-multilingual-base
 # No OPENAI_API_KEY needed for local infinity-emb
 ```
 
@@ -206,7 +206,7 @@ srclight workspace add /path/to/repo2 -w myworkspace
 
 # Index all repos with embeddings
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
-  srclight workspace index -w myworkspace --embed text-embedding-gte-multilingual-base
+  srclight workspace index -w myworkspace --embed openai:text-embedding-gte-multilingual-base
 
 # Start MCP server in workspace mode
 srclight serve --workspace myworkspace
@@ -379,7 +379,7 @@ Re-index specifying the correct server:
 
 ```bash
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
-  --embed text-embedding-gte-multilingual-base
+  --embed openai:text-embedding-gte-multilingual-base
 ```
 
 ### "Semantic search returns no results"

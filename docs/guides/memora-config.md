@@ -19,12 +19,12 @@ Memora stores cross-session context, research findings, and architectural decisi
 ├── memories/           # Serena's persistent insights (markdown/text)
 └── project.yml        # Serena project configuration
 
-.memora/
-├── memories.db        # SQLite database for session data
-└── embeddings/        # Local embedding cache
+~/.local/share/memora/
+└── memories.db        # Memora SQLite database (default MEMORA_DB_PATH)
 ```
 
-> **Note**: Memory files are stored in `.serena/memories/` (not `.memora/`).
+> **Note**: Memora does not create a `.memora/` project directory. The database lives at
+> `~/.local/share/memora/memories.db` by default, configurable via `MEMORA_DB_PATH`.
 
 ## Configuration Options
 
@@ -42,10 +42,12 @@ languages:
   - python
   - rust
 
-# LSP settings
-lsp:
-  server: clangd          # or ccls
-  compile_commands: ./compile_commands.json
+# Exclusions (recommended for large codebases)
+exclusions:
+  - "**/node_modules/**"
+  - "**/*build*"
+  - "**/deps/**"
+  - ".git"
 ```
 
 ### Memora MCP Configuration (.mcp.json)
@@ -135,15 +137,10 @@ export MEMORA_ALLOW_ANY_TAG=1        # Optional: allow custom tags
 | `memory_insights` | Activity summary, stale detection, consolidation suggestions |
 | `memory_rebuild_embeddings` | Rebuild all embeddings after model change |
 
-## Integration Modes
-
-Memora supports three integration patterns:
-
-### 1. MCP Server Mode
-
-Standalone MCP server for 100% offline deployments:
+## Server Invocation
 
 ```bash
+# Default (stdio mode for MCP)
 memora-server
 
 # With knowledge graph visualization
@@ -151,24 +148,9 @@ memora-server --graph-port 8765
 
 # Headless (no graph server)
 memora-server --no-graph
-```
 
-### 2. Agno Agent Mode
-
-Integrated as an agent tool:
-
-```python
-from agno import Agent
-agent = Agent(tools=[memora_context])
-```
-
-### 3. Framework Integration
-
-Direct import for custom frameworks:
-
-```python
-from memora import ContextManager
-ctx = ContextManager()
+# HTTP transport (alternative to stdio)
+memora-server --transport streamable-http --host 127.0.0.1 --port 8080
 ```
 
 ## Usage Examples

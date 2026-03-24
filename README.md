@@ -93,8 +93,9 @@ curl -fsSL https://opencode.ai/install | bash
 bunx oh-my-opencode-slim@latest install
 
 # 3. Install MCP servers
+# Note: download these on a connected machine and transfer wheels for air-gap
 pip install "serena[mcp]"
-pip install srclight
+pip download "srclight==0.15.1" -d ./wheels/ && pip install --no-index --find-links ./wheels/ "srclight==0.15.1"
 pip install "memora-mcp[local] @ git+https://github.com/agentic-box/memora.git"
 
 # 4. Verify internal inference server is reachable

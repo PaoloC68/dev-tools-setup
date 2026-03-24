@@ -13,13 +13,32 @@ exposes 29 MCP tools and supports 11 languages.
 
 ## Installation
 
+> **Version requirement**: OpenAI-compatible embedding endpoints require v0.11.0+. The current
+> release is v0.15.1. Versions ≤ 0.8.1 only support Ollama and Voyage — `pip install --upgrade`
+> stays at 0.8.1 in an air-gapped environment if the internal mirror hasn't been updated.
+
+### Connected Machine (pre-air-gap)
+
 ```bash
-pip install srclight            # install latest (0.15.1+)
-pip install --upgrade srclight  # upgrade if already installed
+# Download srclight 0.15.1 + all dependencies into a local directory
+pip download "srclight==0.15.1" -d ./srclight-wheels/
+
+# Include extras if needed
+pip download "srclight[gpu]==0.15.1" -d ./srclight-wheels/
+pip download "srclight[docs,pdf]==0.15.1" -d ./srclight-wheels/
+
+# Transfer ./srclight-wheels/ to the air-gapped machine via approved media
 ```
 
-> **Version requirement**: OpenAI-compatible embedding endpoints require v0.11.0+.
-> Check with `pip show srclight`.
+### Air-gapped Machine
+
+```bash
+# Install from local wheel directory
+pip install --no-index --find-links ./srclight-wheels/ "srclight==0.15.1"
+
+# Verify
+pip show srclight   # must show Version: 0.15.1
+```
 
 Embeddings are provided by the internal inference server. No local model installation is required —
 Srclight calls the server's OpenAI-compatible `/v1/embeddings` endpoint at index time and query time.

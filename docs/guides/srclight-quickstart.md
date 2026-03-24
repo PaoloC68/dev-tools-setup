@@ -54,15 +54,35 @@ pip install 'srclight[all]'         # Everything
 
 ### Air-gapped Preparation Checklist
 
+Run the following **on a connected machine** before going air-gapped:
+
 ```bash
-# 1. Install Srclight
-pip install srclight
+# 1. Download srclight 0.15.1 wheel + all dependencies into a local directory
+pip download "srclight==0.15.1" -d ./srclight-wheels/
 
-# 2. Verify the internal embedding server is reachable
-curl http://inference.internal/v1/models
+# 2. Optionally include GPU or docs extras
+pip download "srclight[gpu]==0.15.1" -d ./srclight-wheels/
+pip download "srclight[docs,pdf]==0.15.1" -d ./srclight-wheels/
 
-# 3. Disconnect from external network. Indexing and search run via the internal server.
+# 3. Transfer ./srclight-wheels/ to the air-gapped machine via approved media
 ```
+
+Then on the **air-gapped machine**:
+
+```bash
+# 4. Install from the local wheel directory (no network access)
+pip install --no-index --find-links ./srclight-wheels/ "srclight==0.15.1"
+
+# Verify version
+pip show srclight   # must show Version: 0.15.1
+
+# 5. Verify the internal embedding server is reachable
+curl http://inference.internal/v1/models
+```
+
+> **Why 0.15.1 specifically**: v0.8.1 and earlier have no OpenAI-compatible embedding provider.
+> `pip install --upgrade srclight` stays at 0.8.1 in an air-gapped environment if the internal
+> PyPI mirror only has that version cached. The wheel must be transferred manually.
 
 ## Configuration
 

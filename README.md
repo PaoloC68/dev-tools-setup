@@ -111,7 +111,7 @@ OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index \
   --embed openai:qwen3-embedding-8b
 
 # 7. Start MCP servers and launch
-srclight serve --workspace default &
+srclight serve --workspace myworkspace &
 opencode
 ```
 

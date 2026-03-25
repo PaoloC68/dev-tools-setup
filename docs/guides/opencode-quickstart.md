@@ -81,7 +81,7 @@ Place in project root, or at `~/.config/opencode/opencode.json` for global setti
     },
     "srclight": {
       "type": "local",
-      "command": ["srclight", "serve"],
+      "command": ["srclight", "serve", "--transport", "stdio"],
       "enabled": true,
       "environment": {
         "OPENAI_API_KEY": "{env:INFERENCE_API_KEY}"
@@ -253,7 +253,7 @@ Updating...
     },
     "srclight": {
       "type": "local",
-      "command": ["srclight", "serve", "--workspace", "default"],
+      "command": ["srclight", "serve", "--workspace", "myworkspace", "--transport", "stdio"],
       "enabled": true
     }
   }

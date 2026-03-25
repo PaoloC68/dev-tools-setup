@@ -197,7 +197,7 @@ project-root/
     },
     "srclight": {
       "type": "local",
-      "command": ["srclight", "serve", "--workspace", "default"],
+      "command": ["srclight", "serve", "--workspace", "myworkspace", "--transport", "stdio"],
       "enabled": true
     },
     "memora": {

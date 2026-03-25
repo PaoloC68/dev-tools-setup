@@ -131,11 +131,11 @@ OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal srclight index -
 srclight search "authentication flow"
 srclight search --kind function "parseJson"
 
-# Start MCP server (stdio)
-srclight serve
+# Start MCP server — stdio (for OpenCode/Claude Code local MCP)
+srclight serve --transport stdio
 
-# Register with Claude Code
-claude mcp add srclight -- srclight serve
+# Register with Claude Code (stdio)
+claude mcp add srclight -- srclight serve --transport stdio
 ```
 
 ### Multi-repo Workspaces
@@ -172,21 +172,33 @@ srclight hook install --workspace myworkspace
 
 ## Integration with OpenCode
 
-Add Srclight to `opencode.json` as an MCP server:
+> **Critical**: `srclight serve` defaults to SSE (port 8742). OpenCode's `"type": "local"`
+> expects stdio — without `--transport stdio` the server starts silently on port 8742 and
+> OpenCode receives nothing. Use `--transport stdio` for local MCP, or SSE with `"type": "remote"`.
+
+**Option A — stdio (local MCP, spawned per session):**
 
 ```json
 {
   "mcp": {
     "srclight": {
       "type": "local",
-      "command": ["srclight", "serve"],
+      "command": ["srclight", "serve", "--workspace", "myworkspace", "--transport", "stdio"],
       "enabled": true
     }
   }
 }
 ```
 
-For workspace mode (SSE):
+**Option B — SSE (run separately, recommended for workspaces):**
+
+First start srclight as a background service:
+```bash
+srclight serve --workspace myworkspace &
+# or as a systemd user service (see srclight-quickstart.md)
+```
+
+Then in `opencode.json`:
 
 ```json
 {

@@ -137,23 +137,40 @@ generates vectors (if `--embed` is specified). Everything lands in `.srclight/in
 
 ### Step 2: Start the MCP Server
 
-Single repo (stdio — one server per session):
+> **Critical**: `srclight serve` defaults to **SSE** transport (port 8742), not stdio.
+> OpenCode and Claude Code `"type": "local"` MCP configs expect **stdio**.
+> Always pass `--transport stdio` for local MCP, or use SSE with `"type": "remote"`.
+
+**Option A — stdio (local MCP, spawned per session):**
 
 ```bash
-srclight serve
+claude mcp add srclight -- srclight serve --transport stdio
+claude mcp add srclight -- srclight serve --workspace myworkspace --transport stdio
 ```
 
-For OpenCode / Claude Code integration:
-
-```bash
-claude mcp add srclight -- srclight serve
+In `opencode.json`:
+```json
+"srclight": {
+  "type": "local",
+  "command": ["srclight", "serve", "--workspace", "myworkspace", "--transport", "stdio"],
+  "enabled": true
+}
 ```
 
-Workspace mode (SSE — persistent, recommended for multi-repo):
+**Option B — SSE (persistent, recommended for workspaces):**
 
 ```bash
 srclight serve --workspace myworkspace &
 claude mcp add --transport sse srclight http://127.0.0.1:8742/sse
+```
+
+In `opencode.json`:
+```json
+"srclight": {
+  "type": "remote",
+  "url": "http://127.0.0.1:8742/sse",
+  "enabled": true
+}
 ```
 
 ### Step 3: Search
@@ -363,8 +380,8 @@ srclight workspace search "user authentication" -w myworkspace
 | `srclight index` | Index current directory (incremental by default) |
 | `srclight search <query>` | Search the index |
 | `srclight symbols <file>` | List symbols in a file |
-| `srclight serve` | Start MCP server (stdio) |
-| `srclight serve --workspace <name>` | Start MCP server (workspace SSE on :8742) |
+| `srclight serve --transport stdio` | Start MCP server (stdio, for OpenCode/Claude Code local MCP) |
+| `srclight serve --workspace <name>` | Start MCP server (SSE on :8742, for remote MCP or Cursor) |
 | `srclight hook install` | Install git post-commit/post-checkout hooks |
 | `srclight workspace init <name>` | Create a multi-repo workspace |
 | `srclight workspace add <path> -w <name>` | Add a repo to a workspace |

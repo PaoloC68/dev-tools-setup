@@ -135,7 +135,9 @@ opencode
 | [Serena Quickstart](docs/guides/serena-quickstart.md) | LSP-based symbolic navigation, 13 tools, C/C++ setup |
 | [Srclight Quickstart](docs/guides/srclight-quickstart.md) | Hybrid code search, 29 MCP tools, tree-sitter, 11 languages |
 | [Srclight Setup](docs/guides/srclight-setup.md) | Installation, embedding config, multi-repo workspaces |
-| [Memora Configuration](docs/guides/memora-config.md) | Persistence layer, air-gap compliance, security config |
+| [Memora Quickstart](docs/guides/memora-quickstart.md) | Persistence layer setup, air-gap compliance, tools reference |
+| [Memora Configuration](docs/guides/memora-config.md) | Persistence layer configuration reference |
+| [Typical Workflow](docs/guides/typical-workflow.md) | Day-in-the-life: clone, index, search, refactor, commit, switch projects |
 
 ### Research
 

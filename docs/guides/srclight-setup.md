@@ -135,7 +135,7 @@ srclight search --kind function "parseJson"
 srclight serve --workspace myworkspace
 
 # Register with Claude Code
-claude mcp add srclight -- srclight serve --workspace myworkspace
+claude mcp add srclight -- srclight serve --workspace myworkspace --transport stdio
 ```
 
 ### Multi-repo Workspaces
@@ -172,10 +172,12 @@ srclight hook install --workspace myworkspace
 
 ## Integration with OpenCode
 
-> **Important**: `srclight serve` auto-detects stdio vs SSE based on how it is started.
-> When spawned by an MCP client (OpenCode, Claude Code), it communicates via stdio automatically.
-> Always specify `--workspace` so srclight finds the correct index regardless of which directory
-> the MCP client starts it from.
+> **`--transport stdio` is required** for OpenCode's `"type": "local"` MCP config.
+> Verified from `server.py:run_server()`: no TTY detection exists — default is always SSE.
+> Without the flag, the process starts Uvicorn on port 8742 and OpenCode receives nothing.
+>
+> If srclight is installed in a virtualenv or via pyenv, use the **full binary path** —
+> OpenCode may not inherit your shell's PATH. Find it with `which srclight`.
 
 **Option A — stdio (local MCP, spawned per session):**
 
@@ -184,12 +186,14 @@ srclight hook install --workspace myworkspace
   "mcp": {
     "srclight": {
       "type": "local",
-      "command": ["srclight", "serve", "--workspace", "myworkspace"],
+      "command": ["/path/to/srclight", "serve", "--workspace", "myworkspace", "--transport", "stdio"],
       "enabled": true
     }
   }
 }
 ```
+
+Replace `/path/to/srclight` with the output of `which srclight` on your system.
 
 **Option B — SSE (run separately, recommended for workspaces):**
 

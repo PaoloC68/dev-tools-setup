@@ -137,22 +137,25 @@ generates vectors (if `--embed` is specified). Everything lands in `.srclight/in
 
 ### Step 2: Start the MCP Server
 
-> **Important**: `srclight serve` auto-detects stdio vs SSE based on how it is started.
-> When spawned by an MCP client (OpenCode, Claude Code), it uses stdio automatically — no
-> `--transport` flag needed. Always specify `--workspace` so srclight finds the correct index
-> regardless of which directory the MCP client starts it from.
+> **`--transport stdio` is required** for OpenCode's `"type": "local"` MCP config.
+> Verified from source (`server.py:run_server`): there is no TTY/pipe detection — the default
+> is always SSE (Uvicorn on port 8742). Without `--transport stdio`, OpenCode spawns the
+> process but receives nothing.
+>
+> Also use the **full binary path** if srclight is installed in a virtualenv or via pyenv,
+> since OpenCode may not inherit your shell's PATH.
 
 **Option A — stdio (local MCP, spawned per session):**
 
 ```bash
-claude mcp add srclight -- srclight serve --workspace myworkspace
+claude mcp add srclight -- srclight serve --workspace myworkspace --transport stdio
 ```
 
 In `opencode.json`:
 ```json
 "srclight": {
   "type": "local",
-  "command": ["srclight", "serve", "--workspace", "myworkspace"],
+  "command": ["srclight", "serve", "--workspace", "myworkspace", "--transport", "stdio"],
   "enabled": true
 }
 ```
@@ -380,7 +383,7 @@ srclight workspace search "user authentication" -w myworkspace
 | `srclight index` | Index current directory (incremental by default) |
 | `srclight search <query>` | Search the index |
 | `srclight symbols <file>` | List symbols in a file |
-| `srclight serve --transport stdio` | Start MCP server (stdio, for OpenCode/Claude Code local MCP) |
+| `srclight serve --workspace <name> --transport stdio` | Start MCP server (stdio, required for OpenCode `"type": "local"`) |
 | `srclight serve --workspace <name>` | Start MCP server (SSE on :8742, for remote MCP or Cursor) |
 | `srclight hook install` | Install git post-commit/post-checkout hooks |
 | `srclight workspace init <name>` | Create a multi-repo workspace |

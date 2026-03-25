@@ -132,10 +132,10 @@ srclight search "authentication flow"
 srclight search --kind function "parseJson"
 
 # Start MCP server — stdio (for OpenCode/Claude Code local MCP)
-srclight serve --transport stdio
+srclight serve --workspace myworkspace
 
-# Register with Claude Code (stdio)
-claude mcp add srclight -- srclight serve --transport stdio
+# Register with Claude Code
+claude mcp add srclight -- srclight serve --workspace myworkspace
 ```
 
 ### Multi-repo Workspaces
@@ -172,9 +172,10 @@ srclight hook install --workspace myworkspace
 
 ## Integration with OpenCode
 
-> **Critical**: `srclight serve` defaults to SSE (port 8742). OpenCode's `"type": "local"`
-> expects stdio — without `--transport stdio` the server starts silently on port 8742 and
-> OpenCode receives nothing. Use `--transport stdio` for local MCP, or SSE with `"type": "remote"`.
+> **Important**: `srclight serve` auto-detects stdio vs SSE based on how it is started.
+> When spawned by an MCP client (OpenCode, Claude Code), it communicates via stdio automatically.
+> Always specify `--workspace` so srclight finds the correct index regardless of which directory
+> the MCP client starts it from.
 
 **Option A — stdio (local MCP, spawned per session):**
 
@@ -183,7 +184,7 @@ srclight hook install --workspace myworkspace
   "mcp": {
     "srclight": {
       "type": "local",
-      "command": ["srclight", "serve", "--workspace", "myworkspace", "--transport", "stdio"],
+      "command": ["srclight", "serve", "--workspace", "myworkspace"],
       "enabled": true
     }
   }

@@ -137,22 +137,22 @@ generates vectors (if `--embed` is specified). Everything lands in `.srclight/in
 
 ### Step 2: Start the MCP Server
 
-> **Critical**: `srclight serve` defaults to **SSE** transport (port 8742), not stdio.
-> OpenCode and Claude Code `"type": "local"` MCP configs expect **stdio**.
-> Always pass `--transport stdio` for local MCP, or use SSE with `"type": "remote"`.
+> **Important**: `srclight serve` auto-detects stdio vs SSE based on how it is started.
+> When spawned by an MCP client (OpenCode, Claude Code), it uses stdio automatically — no
+> `--transport` flag needed. Always specify `--workspace` so srclight finds the correct index
+> regardless of which directory the MCP client starts it from.
 
 **Option A — stdio (local MCP, spawned per session):**
 
 ```bash
-claude mcp add srclight -- srclight serve --transport stdio
-claude mcp add srclight -- srclight serve --workspace myworkspace --transport stdio
+claude mcp add srclight -- srclight serve --workspace myworkspace
 ```
 
 In `opencode.json`:
 ```json
 "srclight": {
   "type": "local",
-  "command": ["srclight", "serve", "--workspace", "myworkspace", "--transport", "stdio"],
+  "command": ["srclight", "serve", "--workspace", "myworkspace"],
   "enabled": true
 }
 ```

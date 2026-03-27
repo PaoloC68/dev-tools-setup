@@ -32,6 +32,18 @@ srclight workspace add . -w myworkspace
 srclight hook install
 ```
 
+> **How git hooks work with OpenCode**: The hooks are plain shell scripts with the full
+> srclight binary path baked in — no PATH dependency. They run in the background (`&` +
+> `disown`) after every `git commit` and branch switch, so they don't block OpenCode's
+> operations. A `flock` prevents concurrent re-indexes. Output goes to `.srclight/reindex.log`.
+>
+> **Caveat**: Hooks only update FTS5 indexes (keyword search). They do **not** re-embed —
+> semantic search will be stale for new/changed symbols until you manually re-embed:
+> ```bash
+> OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
+>   srclight index --embed openai:qwen3-embedding-8b
+> ```
+
 ### 1.2 Start OpenCode
 
 ```bash

@@ -18,11 +18,14 @@ cd firmware
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -B build .
 ln -sf build/compile_commands.json .
 
+# Create a Srclight workspace (once — skip if workspace already exists)
+srclight workspace init myworkspace
+
 # Index for Srclight (keyword + semantic search)
 OPENAI_API_KEY=sk-xxx OPENAI_BASE_URL=http://inference.internal \
   srclight index --embed openai:qwen3-embedding-8b
 
-# Add to Srclight workspace
+# Add to the workspace
 srclight workspace add . -w myworkspace
 
 # Install git hooks (auto-reindex on commit/checkout)
